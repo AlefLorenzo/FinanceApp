@@ -7,6 +7,8 @@ import type { Debt, DebtInstallment } from '../types';
 import { format, parseISO } from 'date-fns';
 import { CreditCard, Plus, ChevronRight, AlertTriangle, ChevronLeft, Calendar } from 'lucide-react';
 import { getTodayISO } from '../utils/date';
+import { MoneyInput } from './ui/MoneyInput';
+import { formatBRLFromCents } from '../utils/currency';
 
 export function DebtsView() {
   const [activeView, setActiveView] = useState<'list' | 'create' | 'detail'>('list');
@@ -31,8 +33,6 @@ export function DebtsView() {
     return allInstallments.filter(i => DebtService.isOverdue(i, today)).length;
   }, [allInstallments, today]);
 
-  const fmt = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
-
   // ----- RENDER -----
   if (activeView === 'create') {
     return <DebtCreateForm onBack={() => setActiveView('list')} categories={categories} />;
@@ -56,7 +56,7 @@ export function DebtsView() {
             <h2 className="text-sm font-black uppercase tracking-widest text-indigo-300">Minhas Dívidas</h2>
           </div>
           <p className="text-gray-400 text-sm mb-1">Total Restante</p>
-          <h1 className="text-4xl font-black mb-6">{fmt(totalRemainingCents)}</h1>
+          <h1 className="text-4xl font-black mb-6">{formatBRLFromCents(totalRemainingCents)}</h1>
           
           <div className="flex gap-4">
             <div className="bg-white/10 rounded-2xl p-4 flex-1 backdrop-blur-sm">
@@ -107,7 +107,7 @@ export function DebtsView() {
                     <h3 className="font-bold text-gray-900">{debt.title}</h3>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black text-gray-900">{fmt(remaining)}</p>
+                    <p className="text-sm font-black text-gray-900">{formatBRLFromCents(remaining)}</p>
                     <p className="text-xs text-gray-400">restantes</p>
                   </div>
                 </div>
@@ -148,7 +148,6 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
   const totalPaidCents = debt.original_amount_cents - remainingCents; // Approximation for UI
   const progressPct = Math.round((paidCount / debt.total_installments) * 100);
 
-  const fmt = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
 
   const handleSettle = async () => {
     await DebtRepository.settleDebt(debt.id, remainingCents);
@@ -169,15 +168,15 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div>
             <p className="text-xs text-gray-400 mb-1">Original</p>
-            <p className="font-bold text-sm">{fmt(debt.original_amount_cents)}</p>
+            <p className="font-bold text-sm">{formatBRLFromCents(debt.original_amount_cents)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Pago</p>
-            <p className="font-bold text-sm text-green-600">{fmt(totalPaidCents)}</p>
+            <p className="font-bold text-sm text-green-600">{formatBRLFromCents(totalPaidCents)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Restante</p>
-            <p className="font-black text-sm text-gray-900">{fmt(remainingCents)}</p>
+            <p className="font-black text-sm text-gray-900">{formatBRLFromCents(remainingCents)}</p>
           </div>
         </div>
 
@@ -237,7 +236,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
                     <p className="text-xs text-gray-500">Parcela {inst.installment_number}/{debt.total_installments}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-black">{fmt(inst.amount_cents)}</p>
+                    <p className="font-black">{formatBRLFromCents(inst.amount_cents)}</p>
                   </div>
                 </div>
 
@@ -245,11 +244,11 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
                   <div className="bg-white/60 rounded-xl p-3 mb-3 text-xs flex justify-between border border-yellow-100">
                     <div>
                       <span className="text-gray-500 block mb-1">Pago:</span>
-                      <span className="font-bold text-green-600">{fmt(inst.paid_amount_cents)}</span>
+                      <span className="font-bold text-green-600">{formatBRLFromCents(inst.paid_amount_cents)}</span>
                     </div>
                     <div className="text-right">
                       <span className="text-gray-500 block mb-1">Restante:</span>
-                      <span className="font-bold text-gray-900">{fmt(remaining)}</span>
+                      <span className="font-bold text-gray-900">{formatBRLFromCents(remaining)}</span>
                     </div>
                   </div>
                 )}
@@ -285,7 +284,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
             <div className="space-y-4 mb-6">
               <div className="flex justify-between py-3 border-b border-gray-100">
                 <span className="text-gray-500">Saldo atual</span>
-                <span className="font-bold">{fmt(remainingCents)}</span>
+                <span className="font-bold">{formatBRLFromCents(remainingCents)}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-100">
                 <span className="text-gray-500">Parcelas restantes</span>
@@ -293,7 +292,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
               </div>
               <div className="flex justify-between py-3 bg-gray-50 rounded-xl px-4">
                 <span className="text-gray-900 font-bold">Valor para quitação</span>
-                <span className="font-black text-indigo-600 text-lg">{fmt(remainingCents)}</span>
+                <span className="font-black text-indigo-600 text-lg">{formatBRLFromCents(remainingCents)}</span>
               </div>
             </div>
 
@@ -329,15 +328,10 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
 
 function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose: () => void }) {
   const remaining = DebtService.remainingCents(inst);
-  const [payAmountStr, setPayAmountStr] = useState((remaining / 100).toFixed(2).replace('.', ','));
-
-  const parseAmount = (val: string) => {
-    const num = parseFloat(val.replace(',', '.'));
-    return isNaN(num) ? 0 : Math.round(num * 100);
-  };
+  const [payAmountCents, setPayAmountCents] = useState(remaining);
 
   const handlePay = async () => {
-    let amountCents = parseAmount(payAmountStr);
+    let amountCents = payAmountCents;
     if (amountCents <= 0) return;
     
     // Cap visually to avoid confusion, though repo already caps it
@@ -347,8 +341,6 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
     onClose();
   };
 
-  const fmt = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
@@ -357,28 +349,27 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
         <div className="space-y-4 mb-6">
           <div className="flex justify-between py-2">
             <span className="text-gray-500">Valor da parcela</span>
-            <span className="font-bold">{fmt(inst.amount_cents)}</span>
+            <span className="font-bold">{formatBRLFromCents(inst.amount_cents)}</span>
           </div>
           {inst.paid_amount_cents > 0 && (
             <div className="flex justify-between py-2 text-green-600">
               <span>Já pago</span>
-              <span className="font-bold">{fmt(inst.paid_amount_cents)}</span>
+              <span className="font-bold">{formatBRLFromCents(inst.paid_amount_cents)}</span>
             </div>
           )}
           <div className="flex justify-between py-2 border-t border-gray-100 pt-3">
             <span className="text-gray-900 font-bold">Restante</span>
-            <span className="font-black text-gray-900">{fmt(remaining)}</span>
+            <span className="font-black text-gray-900">{formatBRLFromCents(remaining)}</span>
           </div>
         </div>
 
         <div className="mb-6">
-          <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">VALOR A PAGAR AGORA (R$)</label>
-          <input 
-            type="text" 
-            inputMode="decimal"
-            value={payAmountStr}
-            onChange={e => setPayAmountStr(e.target.value.replace(/[^0-9,]/g, ''))}
+          <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">VALOR A PAGAR AGORA</label>
+          <MoneyInput
+            valueCents={payAmountCents}
+            onChangeCents={setPayAmountCents}
             className="w-full text-center text-4xl font-black text-indigo-600 bg-gray-50 rounded-2xl py-4 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none"
+            autoFocus
           />
           <p className="text-center text-xs text-gray-400 mt-2">
             Pode ser parcial. O saldo será atualizado na hora.
@@ -401,9 +392,9 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
 function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories: any[] }) {
   const [title, setTitle] = useState('');
   const [creditor, setCreditor] = useState('');
-  const [originalAmount, setOriginalAmount] = useState('');
+  const [originalAmountCents, setOriginalAmountCents] = useState(0);
   const [installments, setInstallments] = useState('12');
-  const [installmentAmount, setInstallmentAmount] = useState('');
+  const [installmentAmountCents, setInstallmentAmountCents] = useState(0);
   const [firstDate, setFirstDate] = useState(getTodayISO());
   const [categoryId, setCategoryId] = useState('');
 
@@ -412,20 +403,15 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
     ? categoryId 
     : (categories[0]?.id || 'default');
 
-  const parseAmount = (val: string) => {
-    const num = parseFloat(val.replace(/\./g, '').replace(',', '.'));
-    return isNaN(num) ? 0 : Math.round(num * 100);
-  };
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     await DebtRepository.create({
       title,
       creditor,
       category_id: effectiveCategoryId,
-      original_amount_cents: parseAmount(originalAmount),
+      original_amount_cents: originalAmountCents,
       total_installments: parseInt(installments, 10),
-      installment_amount_cents: parseAmount(installmentAmount),
+      installment_amount_cents: installmentAmountCents,
       first_due_date: firstDate
     });
     onBack();
@@ -461,8 +447,13 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
 
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR ORIGINAL TOTAL (R$)</label>
-            <input required value={originalAmount} onChange={e => setOriginalAmount(e.target.value)} placeholder="5000,00" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR ORIGINAL TOTAL</label>
+            <MoneyInput
+              required
+              valueCents={originalAmountCents}
+              onChangeCents={setOriginalAmountCents}
+              className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -471,7 +462,12 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR PARCELA</label>
-              <input required value={installmentAmount} onChange={e => setInstallmentAmount(e.target.value)} placeholder="480,00" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <MoneyInput
+                required
+                valueCents={installmentAmountCents}
+                onChangeCents={setInstallmentAmountCents}
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
             </div>
           </div>
           <div>
@@ -487,3 +483,4 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
     </div>
   );
 }
+

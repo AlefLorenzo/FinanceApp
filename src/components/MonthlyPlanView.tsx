@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useFinancialSummary } from '../hooks/useFinancialSummary';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
@@ -16,13 +17,13 @@ function MonthProgressBar({ label, valueCents, totalCents, color }: {
       <div className="flex justify-between items-center mb-1.5">
         <span className="text-sm font-bold text-gray-700">{label}</span>
         <span className="text-sm font-black text-gray-900">
-          R$ {(valueCents / 100).toFixed(2).replace('.', ',')}
+          {formatBRLFromCents(valueCents)}
         </span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-[10px] text-gray-400 mt-1">{pct}% de R$ {(totalCents / 100).toFixed(0)}</p>
+      <p className="text-[10px] text-gray-400 mt-1">{pct}% de R$ {formatBRLFromCents(totalCents).replace(",00", "").replace("R$ ", "")}</p>
     </div>
   );
 }
@@ -43,7 +44,7 @@ export function MonthlyPlanView() {
   const monthProgressPct = Math.round((dayOfMonth / daysTotal) * 100);
 
   const fmt = (cents: number) =>
-    isHidden ? '••••' : `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+    isHidden ? '••••' : `${formatBRLFromCents(cents)}`;
 
   // Group pending expenses by week
   const monthStart_iso = format(monthStart, 'yyyy-MM-dd');
@@ -197,7 +198,7 @@ export function MonthlyPlanView() {
                     </div>
                   </div>
                   <span className={`font-black text-sm shrink-0 ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
-                    {isHidden ? '••••' : `R$ ${(bill.amount_cents / 100).toFixed(2).replace('.', ',')}`}
+                    {isHidden ? '••••' : `${formatBRLFromCents(bill.amount_cents)}`}
                   </span>
                 </div>
               );
@@ -225,7 +226,7 @@ export function MonthlyPlanView() {
                   </div>
                 </div>
                 <span className="font-black text-sm text-green-600 shrink-0">
-                  {isHidden ? '••••' : `R$ ${(inc.amount_cents / 100).toFixed(2).replace('.', ',')}`}
+                  {isHidden ? '••••' : `${formatBRLFromCents(inc.amount_cents)}`}
                 </span>
               </div>
             ))}
@@ -235,3 +236,4 @@ export function MonthlyPlanView() {
     </div>
   );
 }
+

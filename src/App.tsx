@@ -68,7 +68,7 @@ function App() {
         {/* Main Scroll Container */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto pb-24 md:pb-6">
           <div className="max-w-2xl mx-auto px-4 pt-6 w-full">
-            {activeTab === 'home' && <Dashboard />}
+            {activeTab === 'home' && <Dashboard onNavigate={setActiveTab} />}
 
             {activeTab === 'accounts' && (
               <div className="space-y-6 animate-page">

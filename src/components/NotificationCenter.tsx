@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
 import { X, BellOff, CheckCheck } from 'lucide-react';
@@ -89,7 +90,7 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
                 if (notif.kind === 'account') {
                   const a = notif.data;
                   const { icon, badge, badgeColor } = getAccountLabel(a);
-                  const fmtAmt = `R$ ${(a.amount_cents / 100).toFixed(2).replace('.', ',')}`;
+                  const fmtAmt = `${formatBRLFromCents(a.amount_cents)}`;
                   const dueDateLabel = format(new Date(a.due_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR });
                   return (
                     <div key={`acc-${a.id}-${i}`} className="p-4">
@@ -118,7 +119,7 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
                   );
                 } else {
                   const inc = notif.data;
-                  const fmtAmt = `R$ ${(inc.amount_cents / 100).toFixed(2).replace('.', ',')}`;
+                  const fmtAmt = `${formatBRLFromCents(inc.amount_cents)}`;
                   const expectedLabel = inc.expected_date <= format(new Date(), 'yyyy-MM-dd')
                     ? 'Esperada hoje ou antes'
                     : format(new Date(inc.expected_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR });

@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useFinancialSummary } from '../hooks/useFinancialSummary';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
@@ -12,7 +13,7 @@ import {
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export function Dashboard() {
+export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const summary = useFinancialSummary();
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
   const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
@@ -20,7 +21,7 @@ export function Dashboard() {
   const isHidden = settings?.hide_values ?? false;
 
   const fmt = (cents: number) =>
-    isHidden ? '••••••' : `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+    isHidden ? '••••••' : `${formatBRLFromCents(cents)}`;
 
   const handleNextActionClick = async () => {
     const action = summary.nextAction;
@@ -78,7 +79,7 @@ export function Dashboard() {
           <p className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Saldo disponível</p>
           <h2 className="text-4xl font-black tracking-tight mb-3 amount-text">
             <span className="text-lg text-blue-300 mr-1">R$</span>
-            {isHidden ? '••••••' : (summary.currentBalanceCents / 100).toFixed(2).replace('.', ',')}
+            {isHidden ? '••••••' : formatBRLFromCents(summary.currentBalanceCents).replace('R$ ', '')}
           </h2>
           <div className="flex gap-4 text-sm">
             <div className="flex items-center gap-1 text-green-300">
@@ -221,7 +222,10 @@ export function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Próximos dias</h3>
-            <button className="flex items-center gap-1 text-xs font-bold text-blue-600">
+            <button 
+              onClick={() => onNavigate && onNavigate('accounts')}
+              className="flex items-center gap-1 text-xs font-bold text-blue-600"
+            >
               Ver tudo <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -250,3 +254,4 @@ export function Dashboard() {
     </div>
   );
 }
+

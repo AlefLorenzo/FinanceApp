@@ -1,11 +1,14 @@
+import React, { useState } from 'react';
 import { 
   Home, ClipboardList, Calendar, CreditCard, LifeBuoy, 
-  TrendingUp, Target, BarChart3, History, Database, X, Eye, EyeOff
+  TrendingUp, Target, BarChart3, History, Database, X, Eye, EyeOff, CheckCircle2
 } from 'lucide-react';
 import { useFinancialSummary } from '../hooks/useFinancialSummary';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
 import { APP_VERSION } from '../config/version';
+import { MoneyInput } from './ui/MoneyInput';
+import { formatBRLFromCents, parseBRLToCents } from '../utils/currency';
 
 type SidebarProps = {
   activeView: string;
@@ -17,6 +20,10 @@ type SidebarProps = {
 export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarProps) {
   const summary = useFinancialSummary();
   const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [newBalance, setNewBalance] = useState('');
 
   const handleTogglePrivacy = async () => {
     if (settings) {
@@ -32,6 +39,27 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
         created_at: new Date()
       });
     }
+  };
+
+  const handleSaveBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cents = parseBRLToCents(newBalance);
+    const now = new Date();
+    
+    if (wallets.length > 0) {
+      await db.wallets.update(wallets[0].id, { balance_cents: cents, updated_at: now });
+    } else {
+      await db.wallets.add({
+        id: 'default',
+        name: 'Minha Conta',
+        balance_cents: cents,
+        created_at: now,
+        updated_at: now
+      });
+    }
+    
+    setIsEditingBalance(false);
+    setNewBalance('');
   };
 
   const isHidden = settings?.hide_values ?? false;
@@ -75,9 +103,35 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
             {isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
         </div>
-        <div className="text-xl font-black text-gray-950 truncate amount-text">
-          {isHidden ? 'R$ ••••••' : `R$ ${(summary.currentBalanceCents / 100).toFixed(2).replace('.', ',')}`}
-        </div>
+        
+        {isEditingBalance ? (
+          <form onSubmit={handleSaveBalance} className="flex items-center gap-2 mt-1">
+            <MoneyInput
+              autoFocus
+              valueCents={parseBRLToCents(newBalance) || summary.currentBalanceCents}
+              onChangeCents={c => setNewBalance(c.toString())}
+              className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold focus:outline-none focus:border-blue-500"
+              allowNegative={true}
+            />
+            <button type="submit" className="text-green-600 bg-green-50 p-1.5 rounded-lg hover:bg-green-100">
+              <CheckCircle2 className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={() => setIsEditingBalance(false)} className="text-gray-500 bg-gray-100 p-1.5 rounded-lg hover:bg-gray-200">
+              <X className="w-4 h-4" />
+            </button>
+          </form>
+        ) : (
+          <div 
+            onClick={() => {
+              setNewBalance(summary.currentBalanceCents.toString());
+              setIsEditingBalance(true);
+            }}
+            className="text-xl font-black text-gray-950 truncate amount-text cursor-pointer hover:text-blue-600 transition"
+            title="Clique para editar o saldo"
+          >
+            {isHidden ? 'R$ ••••••' : formatBRLFromCents(summary.currentBalanceCents)}
+          </div>
+        )}
       </div>
 
       {/* Menu List */}

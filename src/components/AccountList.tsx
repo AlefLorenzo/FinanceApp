@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountService } from '../services/AccountService';
 import { getTodayISO } from '../utils/date';
@@ -118,7 +119,7 @@ export function AccountList({ limit, hidePaid }: Props) {
                 isPaid ? 'text-gray-400' : account.type === 'expense' ? 'text-red-600' : 'text-green-600'
               }`}>
                 {account.type === 'expense' ? '- ' : '+ '} 
-                R$ {(account.amount_cents / 100).toFixed(2).replace('.', ',')}
+                {formatBRLFromCents(account.amount_cents)}
               </span>
               
               <button 

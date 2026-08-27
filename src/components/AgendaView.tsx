@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useState, useRef, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
@@ -274,7 +275,7 @@ export function AgendaView() {
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm text-gray-900 truncate">{a.title}</div>
                     <div className="text-xs text-gray-400">
-                      {isOverdue ? '⚠️ Atrasada' : 'Vence hoje'} · R$ {(a.amount_cents / 100).toFixed(2).replace('.', ',')}
+                      {isOverdue ? '⚠️ Atrasada' : 'Vence hoje'} · {formatBRLFromCents(a.amount_cents)}
                     </div>
                   </div>
                   <button

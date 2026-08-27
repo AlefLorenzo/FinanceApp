@@ -3,19 +3,19 @@ import { useAccounts } from '../hooks/useAccounts';
 import { IncomeRepository } from '../repository/IncomeRepository';
 import { getTodayISO } from '../utils/date';
 import { PlusCircle, X } from 'lucide-react';
+import { MoneyInput } from './ui/MoneyInput';
 
 export function AccountForm() {
   const { addAccount } = useAccounts();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amountCents, setAmountCents] = useState(0);
   const [dueDate, setDueDate] = useState(getTodayISO());
   const [type, setType] = useState<'expense' | 'income'>('expense');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !amount) return;
-    const amountCents = Math.round(parseFloat(amount) * 100);
+    if (!title || !amountCents) return;
     if (type === 'income') {
       await IncomeRepository.create({
         title,
@@ -35,7 +35,7 @@ export function AccountForm() {
       });
     }
     setTitle('');
-    setAmount('');
+    setAmountCents(0);
     setDueDate(getTodayISO());
     setOpen(false);
   };
@@ -109,15 +109,11 @@ export function AccountForm() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-gray-600 mb-1.5">Valor (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={e => setAmount(e.target.value)}
+                    <label className="block text-sm font-bold text-gray-600 mb-1.5">Valor</label>
+                    <MoneyInput
+                      valueCents={amountCents}
+                      onChangeCents={setAmountCents}
                       className="w-full border border-gray-200 rounded-xl p-3.5 text-base focus:outline-none focus:border-blue-400"
-                      placeholder="0,00"
                       required
                     />
                   </div>

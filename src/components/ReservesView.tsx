@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MoneyInput } from './ui/MoneyInput';
+import { formatBRLFromCents } from '../utils/currency';
 
 // Subcomponent: Reserve Detail Modal
 function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => void }) {
@@ -18,7 +20,7 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
     [reserve.id]
   ) || [];
 
-  const [amount, setAmount] = useState('');
+  const [amountCents, setAmountCents] = useState(0);
   const [note, setNote] = useState('');
   const [adding, setAdding] = useState(false);
 
@@ -27,24 +29,23 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
   );
 
   const handleAdd = async () => {
-    if (!amount) return;
-    const cents = Math.round(parseFloat(amount) * 100);
+    if (!amountCents) return;
     const id = uuidv4();
     await db.transaction('rw', db.reserves, db.reserve_contributions, async () => {
       await db.reserve_contributions.add({
         id,
         reserve_id: reserve.id,
-        amount_cents: cents,
+        amount_cents: amountCents,
         note: note || undefined,
         contributed_at: new Date(),
         created_at: new Date()
       });
       await db.reserves.update(reserve.id, {
-        current_cents: reserve.current_cents + cents,
+        current_cents: reserve.current_cents + amountCents,
         updated_at: new Date()
       });
     });
-    setAmount('');
+    setAmountCents(0);
     setNote('');
     setAdding(false);
   };
@@ -83,13 +84,13 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
             <div className="min-w-0">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider truncate block">Acumulado</span>
               <div className="text-xl sm:text-2xl font-black text-gray-900 amount-text">
-                R$ {(reserve.current_cents / 100).toFixed(2).replace('.', ',')}
+                R$ {formatBRLFromCents(reserve.current_cents).replace("R$ ", "")}
               </div>
             </div>
             <div className="text-right min-w-0">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider truncate block">Meta</span>
               <div className="text-xl sm:text-2xl font-black text-gray-400 amount-text">
-                R$ {(reserve.target_cents / 100).toFixed(2).replace('.', ',')}
+                R$ {formatBRLFromCents(reserve.target_cents).replace("R$ ", "")}
               </div>
             </div>
           </div>
@@ -105,7 +106,7 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
             <span className="text-blue-600">{percent}% concluído</span>
             {!isComplete && (
               <span className="text-gray-500">
-                Faltam R$ {(remaining / 100).toFixed(2).replace('.', ',')}
+                Faltam R$ {formatBRLFromCents(remaining).replace("R$ ", "")}
               </span>
             )}
           </div>
@@ -116,7 +117,7 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
           <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6">
             <Clock className="w-5 h-5 text-blue-500 shrink-0" />
             <p className="text-sm text-blue-700 font-medium">
-              Com R$ {(reserve.contribution_cents / 100).toFixed(0)}/mês, você atinge sua meta em aproximadamente <strong>{monthsLeft} {monthsLeft === 1 ? 'mês' : 'meses'}</strong>.
+              Com R$ {(reserve.contribution_cents / 100).toLocaleString("pt-BR")}/mês, você atinge sua meta em aproximadamente <strong>{monthsLeft} {monthsLeft === 1 ? 'mês' : 'meses'}</strong>.
             </p>
           </div>
         )}
@@ -125,10 +126,11 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
         {adding ? (
           <div className="bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-200 space-y-3">
             <h3 className="font-bold text-gray-800">Adicionar Aporte</h3>
-            <input
-              type="number" step="0.01" placeholder="Valor (R$)"
-              value={amount} onChange={e => setAmount(e.target.value)}
+            <MoneyInput
+              valueCents={amountCents}
+              onChangeCents={setAmountCents}
               className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-400"
+              autoFocus
             />
             <input
               type="text" placeholder="Observação (opcional)"
@@ -168,7 +170,7 @@ function ReserveDetail({ reserve, onClose }: { reserve: Reserve; onClose: () => 
                     </div>
                   </div>
                   <span className="font-black text-green-600 text-sm">
-                    + R$ {(c.amount_cents / 100).toFixed(2).replace('.', ',')}
+                    + R$ {formatBRLFromCents(c.amount_cents).replace("R$ ", "")}
                   </span>
                 </div>
               ))}
@@ -185,20 +187,20 @@ function NewReserveForm({ onClose }: { onClose: () => void }) {
   const icons = ['🛟', '✈️', '💻', '🏠', '🚗', '🎓', '❤️', '🎯', '💰', '🌟'];
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🎯');
-  const [target, setTarget] = useState('');
-  const [contribution, setContribution] = useState('');
+  const [targetCents, setTargetCents] = useState(0);
+  const [contributionCents, setContributionCents] = useState(0);
   const [day, setDay] = useState('5');
 
   const handleCreate = async () => {
-    if (!name || !target) return;
+    if (!name || !targetCents) return;
     await db.reserves.add({
       id: uuidv4(),
       name,
       icon,
       color: '#3b82f6',
-      target_cents: Math.round(parseFloat(target) * 100),
+      target_cents: targetCents,
       current_cents: 0,
-      contribution_cents: contribution ? Math.round(parseFloat(contribution) * 100) : 0,
+      contribution_cents: contributionCents,
       contribution_frequency: 'monthly',
       contribution_day: parseInt(day),
       created_at: new Date(),
@@ -248,18 +250,18 @@ function NewReserveForm({ onClose }: { onClose: () => void }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-bold text-gray-600 mb-1">Meta (R$)</label>
-              <input
-                type="number" step="0.01" placeholder="0,00"
-                value={target} onChange={e => setTarget(e.target.value)}
+              <label className="block text-sm font-bold text-gray-600 mb-1">Meta</label>
+              <MoneyInput
+                valueCents={targetCents}
+                onChangeCents={setTargetCents}
                 className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-600 mb-1">Aporte Mensal (R$)</label>
-              <input
-                type="number" step="0.01" placeholder="0,00"
-                value={contribution} onChange={e => setContribution(e.target.value)}
+              <label className="block text-sm font-bold text-gray-600 mb-1">Aporte Mensal</label>
+              <MoneyInput
+                valueCents={contributionCents}
+                onChangeCents={setContributionCents}
                 className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
@@ -305,9 +307,9 @@ export function ReservesView() {
         <div className="relative z-10">
           <h2 className="text-blue-200 font-black mb-1 uppercase tracking-widest text-[10px] truncate">Reserva Total</h2>
           <div className="text-3xl sm:text-4xl font-black mb-1 tracking-tight amount-text">
-            R$ {(totalCurrent / 100).toFixed(2).replace('.', ',')}
+            R$ {formatBRLFromCents(totalCurrent).replace("R$ ", "")}
           </div>
-          <p className="text-blue-200 text-xs sm:text-sm mb-4 truncate">de R$ {(totalTarget / 100).toFixed(2).replace('.', ',')} planejados</p>
+          <p className="text-blue-200 text-xs sm:text-sm mb-4 truncate">de R$ {formatBRLFromCents(totalTarget).replace("R$ ", "")} planejados</p>
           
           <div className="h-3 w-full bg-blue-800/50 rounded-full overflow-hidden mb-4">
             <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${globalPercent}%` }} />
@@ -316,7 +318,7 @@ export function ReservesView() {
           {plan.suggestedReserveCents > 0 && (
             <div className="bg-white/10 rounded-2xl p-4 border border-white/20">
               <p className="text-sm text-blue-50 font-medium">
-                💡 Sugestão: Aportar <strong>R$ {(plan.suggestedReserveCents / 100).toFixed(2).replace('.', ',')}</strong> este mês.
+                💡 Sugestão: Aportar <strong>R$ {formatBRLFromCents(plan.suggestedReserveCents).replace("R$ ", "")}</strong> este mês.
               </p>
             </div>
           )}
@@ -375,13 +377,13 @@ export function ReservesView() {
                 </div>
 
                 <div className="flex justify-between text-[10px] sm:text-xs font-bold text-gray-400 gap-2">
-                  <span className="truncate">R$ {(reserve.current_cents / 100).toFixed(2).replace('.', ',')} guardados</span>
-                  <span className="truncate whitespace-nowrap shrink-0">{pct}% de R$ {(reserve.target_cents / 100).toFixed(2).replace('.', ',')}</span>
+                  <span className="truncate">R$ {formatBRLFromCents(reserve.current_cents).replace("R$ ", "")} guardados</span>
+                  <span className="truncate whitespace-nowrap shrink-0">{pct}% de R$ {formatBRLFromCents(reserve.target_cents).replace("R$ ", "")}</span>
                 </div>
 
                 {reserve.contribution_cents > 0 && (
                   <div className="mt-2 text-xs text-gray-400 font-medium">
-                    📅 Aporte: R$ {(reserve.contribution_cents / 100).toFixed(0)}/mês · Dia {reserve.contribution_day}
+                    📅 Aporte: R$ {(reserve.contribution_cents / 100).toLocaleString("pt-BR")}/mês · Dia {reserve.contribution_day}
                   </div>
                 )}
               </button>
@@ -395,3 +397,5 @@ export function ReservesView() {
     </div>
   );
 }
+
+

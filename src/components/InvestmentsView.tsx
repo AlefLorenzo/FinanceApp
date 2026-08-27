@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
@@ -144,19 +145,19 @@ export function InvestmentsView() {
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between text-gray-300">
                   <span>Renda</span>
-                  <span>R$ {(monthPlan.expectedIncomeCents / 100).toFixed(2).replace('.', ',')}</span>
+                  <span>{formatBRLFromCents(monthPlan.expectedIncomeCents)}</span>
                 </div>
                 <div className="flex justify-between text-gray-300">
                   <span>Contas</span>
-                  <span className="text-red-400">- R$ {(monthPlan.totalExpensesCents / 100).toFixed(2).replace('.', ',')}</span>
+                  <span className="text-red-400">- {formatBRLFromCents(monthPlan.totalExpensesCents)}</span>
                 </div>
                 <div className="flex justify-between text-gray-300">
                   <span>Reserva sugerida</span>
-                  <span className="text-blue-400">- R$ {(monthPlan.suggestedReserveCents / 100).toFixed(2).replace('.', ',')}</span>
+                  <span className="text-blue-400">- {formatBRLFromCents(monthPlan.suggestedReserveCents)}</span>
                 </div>
                 <div className="flex justify-between font-black text-white border-t border-gray-700 pt-2">
                   <span>Disponível</span>
-                  <span className="text-green-400">R$ {(monthPlan.freeMoneyCents / 100).toFixed(2).replace('.', ',')}</span>
+                  <span className="text-green-400">{formatBRLFromCents(monthPlan.freeMoneyCents)}</span>
                 </div>
               </div>
 

@@ -1,3 +1,4 @@
+import { formatBRLFromCents } from '../utils/currency';
 import type { Account, Income, Reserve, DebtInstallment, FinancialSummary, NextAction } from '../types';
 import { AccountService } from './AccountService';
 import { DebtService } from './DebtService';
@@ -148,7 +149,7 @@ export class FinancialEngine {
       nextAction = {
         type: 'reserve',
         title: 'Proteger seu Futuro',
-        description: `Separar R$ ${(suggestedReserveCents / 100).toFixed(2).replace('.', ',')} para sua reserva de emergência`,
+        description: `Separar R$ ${formatBRLFromCents(suggestedReserveCents).replace('R$ ', '')} para sua reserva de emergência`,
         amountCents: suggestedReserveCents,
         priority: 'medium'
       };
@@ -159,7 +160,7 @@ export class FinancialEngine {
       nextAction = {
         type: 'invest',
         title: 'Dinheiro Livre para Investir',
-        description: `Considere planejar o aporte de R$ ${(availableForInvestmentCents / 100).toFixed(2).replace('.', ',')} este mês`,
+        description: `Considere planejar o aporte de R$ ${formatBRLFromCents(availableForInvestmentCents).replace('R$ ', '')} este mês`,
         amountCents: availableForInvestmentCents,
         priority: 'low'
       };
