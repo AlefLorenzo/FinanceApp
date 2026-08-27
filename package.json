@@ -26,6 +26,7 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.5.4",
+    "cordova": "^13.0.0",
     "fake-indexeddb": "^6.2.5",
     "oxlint": "^1.79.0",
     "postcss": "^8.5.26",
