@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+dist/
+
+# Variáveis de ambiente (não commitar segredos)
+.env.local
+.env.*.local
+
+# Cordova gerado — plataformas e plugins NÃO precisam estar no git
+cordova/platforms/
+cordova/plugins/
+cordova/node_modules/
+
+# Build Gradle / Android
+cordova/platforms/android/.gradle/
+*.apk
+*.aab
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db

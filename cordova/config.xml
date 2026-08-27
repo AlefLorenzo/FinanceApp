@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.financeapp.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Finance App</name>
+    <description>Aplicativo pessoal de gestão financeira.</description>
+    <author email="aleflorenzo@financeapp.app" href="https://github.com/AlefLorenzo/FinanceApp">
+        AlefLorenzo
+    </author>
+    <content src="index.html" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+
+    <!-- Permitir o acesso à rede local / internet -->
+    <access origin="*" />
+
+    <!-- Preferências de exibição Android -->
+    <preference name="DisallowOverscroll" value="true" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="36" />
+    <preference name="Fullscreen" value="false" />
+    <preference name="StatusBarOverlaysWebView" value="false" />
+    <preference name="StatusBarBackgroundColor" value="#f2f4f7" />
+
+    <!-- Manter WebView zoom desabilitado (layout nativo) -->
+    <preference name="EnableViewportScale" value="false" />
+
+    <!-- IndexedDB: garantir que o armazenamento persista -->
+    <preference name="InAppBrowserStorageEnabled" value="true" />
+</widget>
