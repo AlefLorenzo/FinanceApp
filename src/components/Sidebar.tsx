@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+import AppDownloadButton from './AppDownloadButton';
 import { 
   Home, ClipboardList, Calendar, CreditCard, LifeBuoy, 
   TrendingUp, Target, BarChart3, History, Database, X, Eye, EyeOff, CheckCircle2
@@ -65,15 +66,15 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
   const isHidden = settings?.hide_values ?? false;
 
   const menuItems = [
-    { id: 'home', label: 'Início', icon: Home },
+    { id: 'home', label: 'InÃ­cio', icon: Home },
     { id: 'accounts', label: 'Contas', icon: ClipboardList },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
-    { id: 'debts', label: 'Dívidas', icon: CreditCard },
+    { id: 'debts', label: 'DÃ­vidas', icon: CreditCard },
     { id: 'reserves', label: 'Reserva', icon: LifeBuoy },
     { id: 'invest', label: 'Investimentos', icon: TrendingUp },
     { id: 'goals', label: 'Metas', icon: Target },
-    { id: 'reports', label: 'Relatórios', icon: BarChart3 },
-    { id: 'history', label: 'Histórico', icon: History },
+    { id: 'reports', label: 'RelatÃ³rios', icon: BarChart3 },
+    { id: 'history', label: 'HistÃ³rico', icon: History },
     { id: 'backup', label: 'Backup', icon: Database },
   ];
 
@@ -87,7 +88,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
       {/* Header / Logo */}
       <div className="flex justify-between items-center mb-8 shrink-0">
         <h1 className="text-2xl font-black tracking-tight text-gray-900 flex items-center gap-2">
-          <span>☰</span> Finance
+          <span>â˜°</span> Finance
         </h1>
         {/* Mobile close button */}
         <button onClick={onClose} className="md:hidden p-2 hover:bg-gray-50 rounded-xl transition">
@@ -95,10 +96,10 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
         </button>
       </div>
 
-      {/* Saldo Disponível Block */}
+      {/* Saldo DisponÃ­vel Block */}
       <div className="bg-gray-50 rounded-[1.5rem] p-4 mb-6 border border-gray-100 shrink-0">
         <div className="flex items-center justify-between text-gray-400 mb-1">
-          <span className="text-[10px] font-black uppercase tracking-wider">Saldo disponível</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">Saldo disponÃ­vel</span>
           <button onClick={handleTogglePrivacy} className="p-1 hover:text-gray-900 transition">
             {isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
@@ -129,7 +130,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
             className="text-xl font-black text-gray-950 truncate amount-text cursor-pointer hover:text-blue-600 transition"
             title="Clique para editar o saldo"
           >
-            {isHidden ? 'R$ ••••••' : formatBRLFromCents(summary.currentBalanceCents)}
+            {isHidden ? 'R$ â€¢â€¢â€¢â€¢â€¢â€¢' : formatBRLFromCents(summary.currentBalanceCents)}
           </div>
         )}
       </div>
@@ -154,12 +155,16 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
             </button>
           );
         })}
-      </nav>
+      
+<div className="mt-auto p-3">
+  <AppDownloadButton />
+</div>
+</nav>
 
       {/* App Install Section */}
       <div className="mt-6 pt-6 border-t border-gray-100 shrink-0">
         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-          📱 Aplicativo
+          ðŸ“± Aplicativo
         </h3>
         
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -181,13 +186,13 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
                 onClick={() => onViewChange('android_app')}
                 className="w-full bg-indigo-600 text-white text-xs font-black py-2.5 rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2"
               >
-                <span>↓</span> BAIXAR APK
+                <span>â†“</span> BAIXAR APK
               </button>
               <button 
                 onClick={() => onViewChange('android_app_info')}
                 className="w-full bg-white text-gray-600 border border-gray-200 text-xs font-bold py-2.5 rounded-xl active:scale-95 transition"
               >
-                ℹ️ Como instalar
+                â„¹ï¸ Como instalar
               </button>
             </div>
           )}
@@ -218,3 +223,5 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
     </>
   );
 }
+
+
