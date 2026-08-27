@@ -77,3 +77,5 @@ Os dados persistem ao fechar e reabrir o app, tanto no browser quanto no APK And
 3. Faça upload do `app-debug.apk` (ou `app-release.apk`)
 4. Configure `VITE_ANDROID_APK_URL` com a URL do arquivo
 5. Rebuilde o web: `npm run build`
+6. Url: https://finance-app-kappa-sepia.vercel.app/
+   
