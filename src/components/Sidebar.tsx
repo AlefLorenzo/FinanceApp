@@ -1,5 +1,4 @@
 ﻿import React, { useState } from 'react';
-import AppDownloadButton from './AppDownloadButton';
 import { 
   Home, ClipboardList, Calendar, CreditCard, LifeBuoy, 
   TrendingUp, Target, BarChart3, History, Database, X, Eye, EyeOff, CheckCircle2
@@ -155,10 +154,6 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
             </button>
           );
         })}
-      
-<div className="mt-auto p-3">
-  <AppDownloadButton />
-</div>
 </nav>
 
       {/* App Install Section */}
@@ -223,5 +218,6 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose }: SidebarPr
     </>
   );
 }
+
 
 
