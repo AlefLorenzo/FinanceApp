@@ -3,7 +3,7 @@ import type {
   Account, Category, Payment, RecurringAccount, 
   Reminder, AppSettings, Wallet, Reserve, 
   ReserveContribution, PasswordEntry, InvestmentPlan,
-  Income, Debt, DebtInstallment, AppNotification, AppTransaction
+  Income, Debt, DebtInstallment, AppNotification, AppTransaction, SentNotificationLog
 } from '../types';
 
 export class FinanceDatabase extends Dexie {
@@ -23,6 +23,7 @@ export class FinanceDatabase extends Dexie {
   debts!: Table<Debt, string>;
   debt_installments!: Table<DebtInstallment, string>;
   notifications!: Table<AppNotification, string>;
+  sent_notification_logs!: Table<SentNotificationLog, string>;
 
   constructor() {
     super('FinanceAppDB');
@@ -157,6 +158,26 @@ export class FinanceDatabase extends Dexie {
       debts: 'id, status, category_id',
       debt_installments: 'id, debt_id, due_date, status, account_id',
       notifications: 'id, type, created_at, read'
+    });
+
+    this.version(7).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id, debtId, debtInstallmentId',
+      income: 'id, expected_date, category_id, status, recurring_id',
+      payments: 'id, account_id, paid_at',
+      transactions: 'id, wallet_id, reference_id, type, date',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id',
+      debts: 'id, status, category_id',
+      debt_installments: 'id, debt_id, due_date, status, account_id',
+      notifications: 'id, type, created_at, read',
+      sent_notification_logs: 'id, reference_id, notification_type, reference_date'
     });
   }
 }

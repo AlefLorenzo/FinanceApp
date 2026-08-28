@@ -17,6 +17,7 @@ import { DebtsView } from './components/DebtsView';
 import { MonthlyPlanView } from './components/MonthlyPlanView';
 import { NotificationCenter } from './components/NotificationCenter';
 import { AndroidAppView } from './components/AndroidAppView';
+import { SettingsView } from './components/SettingsView';
 import { NativeNotificationService } from './services/NativeNotificationService';
 
 function App() {
@@ -203,6 +204,10 @@ function App() {
                   Importação e exportação de banco JSON.
                 </p>
               </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsView />
             )}
 
           </div>

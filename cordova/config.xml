@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.financeapp.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.financeapp.app" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>Finance App</name>
     <description>Aplicativo pessoal de gestão financeira.</description>
     <author email="aleflorenzo@financeapp.app" href="https://github.com/AlefLorenzo/FinanceApp">
@@ -25,4 +25,15 @@
 
     <!-- IndexedDB: garantir que o armazenamento persista -->
     <preference name="InAppBrowserStorageEnabled" value="true" />
+    
+    <platform name="android">
+        <config-file target="AndroidManifest.xml" parent="/manifest/application/activity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="financeapp" />
+            </intent-filter>
+        </config-file>
+    </platform>
 </widget>

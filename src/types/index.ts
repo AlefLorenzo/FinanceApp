@@ -172,6 +172,14 @@ export interface AppNotification {
   created_at: Date;
 }
 
+export interface SentNotificationLog {
+  id: string; // referenceId_notificationType_date
+  reference_id: string; // accountId or incomeId
+  notification_type: 'due_tomorrow' | 'due_today' | 'income_tomorrow' | 'income_today';
+  reference_date: string; // YYYY-MM-DD
+  sent_at: Date;
+}
+
 export interface AppSettings {
   id: string;
   hide_values: boolean;

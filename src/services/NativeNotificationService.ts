@@ -117,6 +117,29 @@ function pluginCancel(id: number): Promise<void> {
   });
 }
 
+async function checkAndRecordNotification(
+  referenceId: string,
+  notificationType: 'due_tomorrow' | 'due_today' | 'income_tomorrow' | 'income_today',
+  referenceDate: string
+): Promise<boolean> {
+  const id = `${referenceId}_${notificationType}_${referenceDate}`;
+  const existing = await db.sent_notification_logs.get(id);
+  
+  if (existing) {
+    return true; // Already sent/recorded
+  }
+  
+  await db.sent_notification_logs.add({
+    id,
+    reference_id: referenceId,
+    notification_type: notificationType,
+    reference_date: referenceDate,
+    sent_at: new Date()
+  });
+  
+  return false; // Not sent yet
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export const NativeNotificationService = {
@@ -158,6 +181,9 @@ export const NativeNotificationService = {
 
     if (dueDate === today) {
       // "vence hoje" → 09:00 today
+      const alreadySent = await checkAndRecordNotification(accountId, 'due_today', dueDate);
+      if (alreadySent) return;
+
       const triggerMs = localDateAt9am(dueDate).getTime();
       const id = hashToInt(`expense_today_${accountId}`);
       const msg = `A conta "${title}" vence hoje. Valor: ${formatAmount(amountCents)}`;
@@ -165,6 +191,9 @@ export const NativeNotificationService = {
 
     } else if (dueDate === tomorrow) {
       // "vence amanhã" → 09:00 tomorrow
+      const alreadySent = await checkAndRecordNotification(accountId, 'due_tomorrow', dueDate);
+      if (alreadySent) return;
+
       const triggerMs = localDateAt9am(dueDate).getTime();
       const id = hashToInt(`expense_tomorrow_${accountId}`);
       const msg = `A conta "${title}" vence amanhã. Valor: ${formatAmount(amountCents)}`;
@@ -185,12 +214,18 @@ export const NativeNotificationService = {
     const tomorrow = getTomorrowLocal();
 
     if (expectedDate === today) {
+      const alreadySent = await checkAndRecordNotification(incomeId, 'income_today', expectedDate);
+      if (alreadySent) return;
+
       const triggerMs = localDateAt9am(expectedDate).getTime();
       const id = hashToInt(`income_today_${incomeId}`);
       const msg = `Você deve receber "${title}" hoje. Valor: ${formatAmount(amountCents)}`;
       await pluginSchedule(id, 'Receita prevista para hoje', msg, triggerMs);
 
     } else if (expectedDate === tomorrow) {
+      const alreadySent = await checkAndRecordNotification(incomeId, 'income_tomorrow', expectedDate);
+      if (alreadySent) return;
+
       const triggerMs = localDateAt9am(expectedDate).getTime();
       const id = hashToInt(`income_tomorrow_${incomeId}`);
       const msg = `Você deve receber "${title}" amanhã. Valor: ${formatAmount(amountCents)}`;
