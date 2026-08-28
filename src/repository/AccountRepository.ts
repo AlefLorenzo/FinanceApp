@@ -1,6 +1,7 @@
-﻿import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../data/db';
 import type { Account, AccountStatus } from '../types';
+import { NativeNotificationService } from '../services/NativeNotificationService';
 
 const DEFAULT_WALLET_BALANCE_CENTS = 0;
 
@@ -150,6 +151,8 @@ export class AccountRepository {
         });
       }
     );
+    // Cancel any scheduled native notification for this account
+    await NativeNotificationService.cancelExpenseReminder(accountId);
   }
 
   /**
@@ -228,5 +231,7 @@ export class AccountRepository {
 
   static async delete(id: string): Promise<void> {
     await db.accounts.delete(id);
+    // Cancel any scheduled native notification for this account
+    await NativeNotificationService.cancelExpenseReminder(id);
   }
 }

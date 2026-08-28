@@ -1,6 +1,7 @@
-﻿import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../data/db';
 import type { Income, IncomeStatus } from '../types';
+import { NativeNotificationService } from '../services/NativeNotificationService';
 
 const DEFAULT_WALLET_BALANCE_CENTS = 0;
 
@@ -113,6 +114,8 @@ export class IncomeRepository {
         });
       }
     );
+    // Cancel any scheduled native notification for this income
+    await NativeNotificationService.cancelIncomeReminder(incomeId);
   }
 
   static async markAsPending(incomeId: string): Promise<void> {
@@ -167,5 +170,7 @@ export class IncomeRepository {
 
   static async delete(id: string): Promise<void> {
     await db.income.delete(id);
+    // Cancel any scheduled native notification for this income
+    await NativeNotificationService.cancelIncomeReminder(id);
   }
 }

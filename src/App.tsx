@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './data/db';
 
@@ -17,6 +17,7 @@ import { DebtsView } from './components/DebtsView';
 import { MonthlyPlanView } from './components/MonthlyPlanView';
 import { NotificationCenter } from './components/NotificationCenter';
 import { AndroidAppView } from './components/AndroidAppView';
+import { NativeNotificationService } from './services/NativeNotificationService';
 
 function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -29,6 +30,22 @@ function App() {
     () => db.notifications.filter(n => !n.read).count(),
     []
   ) || 0;
+
+  // Initialize native notifications (Cordova/Android only — no-op on PWA)
+  useEffect(() => {
+    const initNotifications = async () => {
+      await NativeNotificationService.init();
+      await NativeNotificationService.syncAllReminders();
+    };
+
+    if (typeof (window as any).cordova !== 'undefined') {
+      // Wait for deviceready in Cordova
+      document.addEventListener('deviceready', initNotifications, { once: true });
+    } else {
+      // PWA: init() and sync() are no-ops, safe to call directly
+      initNotifications();
+    }
+  }, []);
 
   const handleQuickAddAction = (action: string) => {
     if (action === 'expense') {

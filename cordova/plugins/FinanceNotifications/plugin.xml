@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin id="com.financeapp.notifications" version="1.0.0"
+    xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <name>FinanceNotifications</name>
+    <description>Native Android notifications for FinanceApp</description>
+    <license>MIT</license>
+
+    <engines>
+        <engine name="cordova-android" version=">=13.0.0" />
+    </engines>
+
+    <js-module src="www/FinanceNotifications.js" name="FinanceNotifications">
+        <clobbers target="window.FinanceNotifications" />
+    </js-module>
+
+    <platform name="android">
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+            <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+            <uses-permission android:name="android.permission.WAKE_LOCK" />
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <receiver android:name="com.financeapp.notifications.NotificationReceiver"
+                      android:exported="true">
+                <intent-filter>
+                    <action android:name="com.financeapp.DELIVER_NOTIFICATION" />
+                    <action android:name="android.intent.action.BOOT_COMPLETED" />
+                </intent-filter>
+            </receiver>
+        </config-file>
+
+        <source-file src="src/android/FinanceNotifications.java"
+                     target-dir="app/src/main/java/com/financeapp/notifications" />
+        <source-file src="src/android/NotificationReceiver.java"
+                     target-dir="app/src/main/java/com/financeapp/notifications" />
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="FinanceNotifications">
+                <param name="android-package" value="com.financeapp.notifications.FinanceNotifications" />
+            </feature>
+        </config-file>
+    </platform>
+
+</plugin>

@@ -1,0 +1,9 @@
+{
+  "name": "com.financeapp.notifications",
+  "version": "1.0.0",
+  "description": "Native Android notifications for FinanceApp",
+  "cordova": {
+    "id": "com.financeapp.notifications",
+    "platforms": ["android"]
+  }
+}

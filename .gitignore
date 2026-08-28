@@ -28,3 +28,6 @@ cordova/platforms/android/.gradle/
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups criados antes de refatorações (não commitar)
+*.before-native-notifications.bak
