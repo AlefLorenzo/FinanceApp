@@ -94,8 +94,8 @@ export function AccountList({ limit, hidePaid }: Props) {
                   : isOverdue ? 'border-red-600' : isToday ? 'border-yellow-500' : 'border-blue-500'
             }`}
           >
-            <div className="flex flex-col min-w-0">
-              <h3 className={`font-bold text-base truncate ${isPaid ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+            <div className="flex flex-col min-w-0 flex-1">
+              <h3 className={`font-bold text-base break-words whitespace-normal ${isPaid ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                 {account.title}
               </h3>
               
@@ -115,7 +115,7 @@ export function AccountList({ limit, hidePaid }: Props) {
             </div>
             
             <div className="flex items-center gap-2 shrink-0">
-              <span className={`font-bold text-sm sm:text-base tracking-tight amount-text text-right max-w-[100px] sm:max-w-none ${
+              <span className={`font-bold text-sm sm:text-base tracking-tight amount-text text-right whitespace-nowrap shrink-0 ${
                 isPaid ? 'text-gray-400' : account.type === 'expense' ? 'text-red-600' : 'text-green-600'
               }`}>
                 {account.type === 'expense' ? '- ' : '+ '} 

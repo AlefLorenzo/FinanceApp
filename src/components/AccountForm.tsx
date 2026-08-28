@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAccounts } from '../hooks/useAccounts';
 import { IncomeRepository } from '../repository/IncomeRepository';
 import { getTodayISO } from '../utils/date';
@@ -81,7 +81,7 @@ export function AccountForm() {
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) {
               closeForm();
@@ -92,7 +92,7 @@ export function AccountForm() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="account-form-title"
-            className="w-full sm:max-w-lg bg-white rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90dvh] overflow-hidden animate-page"
+            className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden animate-page"
             onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Indicador mobile */}
@@ -101,7 +101,7 @@ export function AccountForm() {
             </div>
 
             {/* Cabeçalho fixo */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100 shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2
                   id="account-form-title"
@@ -130,7 +130,7 @@ export function AccountForm() {
               <form
                 id="account-form"
                 onSubmit={handleSubmit}
-                className="px-5 sm:px-6 py-5 space-y-5 pb-6"
+                className="p-4 sm:p-6 space-y-4 sm:space-y-6"
               >
                 {/* Tipo */}
                 <div>
@@ -190,49 +190,52 @@ export function AccountForm() {
                   />
                 </div>
 
-                {/* Valor */}
-                <div>
-                  <label
-                    htmlFor="account-amount"
-                    className="block text-sm font-bold text-gray-700 mb-1.5"
-                  >
-                    Valor
-                  </label>
+                {/* Grid Valor e Vencimento */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Valor */}
+                  <div>
+                    <label
+                      htmlFor="account-amount"
+                      className="block text-sm font-bold text-gray-700 mb-1.5"
+                    >
+                      Valor
+                    </label>
 
-                  <MoneyInput
-                    id="account-amount"
-                    valueCents={amountCents}
-                    onChangeCents={setAmountCents}
-                    className="w-full min-h-12 border border-gray-200 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
-                    required
-                  />
-                </div>
+                    <MoneyInput
+                      id="account-amount"
+                      valueCents={amountCents}
+                      onChangeCents={setAmountCents}
+                      className="w-full min-h-12 border border-gray-200 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                      required
+                    />
+                  </div>
 
-                {/* Data */}
-                <div>
-                  <label
-                    htmlFor="account-due-date"
-                    className="block text-sm font-bold text-gray-700 mb-1.5"
-                  >
-                    {type === 'expense'
-                      ? 'Data de vencimento'
-                      : 'Data prevista'}
-                  </label>
+                  {/* Data */}
+                  <div>
+                    <label
+                      htmlFor="account-due-date"
+                      className="block text-sm font-bold text-gray-700 mb-1.5"
+                    >
+                      {type === 'expense'
+                        ? 'Data de vencimento'
+                        : 'Data prevista'}
+                    </label>
 
-                  <input
-                    id="account-due-date"
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full min-h-12 border border-gray-200 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
-                    required
-                  />
+                    <input
+                      id="account-due-date"
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="w-full min-h-12 border border-gray-200 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition"
+                      required
+                    />
+                  </div>
                 </div>
               </form>
             </div>
 
             {/* Rodapé fixo */}
-            <div className="border-t border-gray-100 bg-white px-5 sm:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0">
+            <div className="border-t border-gray-100 bg-white px-4 sm:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0">
               <div className="flex gap-3">
                 <button
                   type="button"

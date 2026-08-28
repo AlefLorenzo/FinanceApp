@@ -66,12 +66,12 @@ function App() {
         />
 
         {/* Main Scroll Container */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-24 md:pb-6">
-          <div className="max-w-2xl mx-auto px-4 pt-6 w-full">
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pb-24 md:pb-6">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
             {activeTab === 'home' && <Dashboard onNavigate={setActiveTab} />}
 
             {activeTab === 'accounts' && (
-              <div className="space-y-6 animate-page">
+              <div className="w-full max-w-5xl mx-auto space-y-6 animate-page">
                 <AccountForm />
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-800">Minhas Contas</h2>
