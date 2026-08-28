@@ -1,290 +1,297 @@
-﻿import { useEffect, useState } from 'react';
-import { formatBRLFromCents } from '../utils/currency';
+﻿import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Check, ChevronLeft, ChevronRight, Circle, Trash2 } from 'lucide-react';
+import { db } from '../data/db';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountService } from '../services/AccountService';
-import { getTodayISO } from '../utils/date';
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Account } from '../types';
+import { IncomeRepository } from '../repository/IncomeRepository';
+import type { Account, Income } from '../types';
+import { formatBRLFromCents } from '../utils/currency';
 
-interface Props {
+interface AccountListProps {
   limit?: number;
   hidePaid?: boolean;
   type?: 'expense' | 'income';
 }
 
-const ITEMS_PER_PAGE = 4;
+export function AccountList({
+  limit,
+  hidePaid = false,
+  type = 'expense'
+}: AccountListProps) {
+  const { accounts, togglePaid, deleteAccount } = useAccounts();
 
-export function AccountList({ limit, hidePaid, type }: Props) {
-  const { accounts, togglePaid } = useAccounts();
-  const today = getTodayISO();
+  const incomes = useLiveQuery(
+    () => db.income.toArray(),
+    []
+  );
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(0);
+  const pageSize = limit || 10;
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'text-red-700 bg-red-100 border-red-200';
-      case 'next':
-        return 'text-orange-700 bg-orange-100 border-orange-200';
-      case 'attention':
-        return 'text-yellow-700 bg-yellow-100 border-yellow-200';
-      default:
-        return 'text-blue-700 bg-blue-100 border-blue-200';
-    }
-  };
+  const today = new Date().toISOString().split('T')[0];
 
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'Urgente';
-      case 'next':
-        return 'Próximo';
-      case 'attention':
-        return 'Atenção';
-      default:
-        return 'Futura';
-    }
-  };
+  const filteredItems = useMemo(() => {
+    if (type === 'income') {
+      const receivedIncomes = ((incomes || []) as Income[])
+        .filter(income => income.status === 'received')
+        .map(income => ({
+          id: income.id,
+          title: income.title,
+          amount_cents: income.amount_cents,
+          date: income.received_date || income.expected_date,
+          status: 'received' as const,
+          kind: 'income' as const,
+          original: income
+        }));
 
-  const getSortScore = (account: Account) => {
-    if (account.status === 'paid') return 999;
-
-    if (AccountService.isAccountOverdue(account)) return 1;
-    if (account.due_date === today) return 2;
-
-    const priority = AccountService.calculatePriority(account);
-
-    if (priority === 'next') return 3;
-    if (priority === 'attention') return 4;
-
-    return 5;
-  };
-
-  let filteredAccounts = [...accounts];
-
-  if (type) {
-    filteredAccounts = filteredAccounts.filter(
-      account => account.type === type
-    );
-  }
-
-  if (hidePaid) {
-    filteredAccounts = filteredAccounts.filter(
-      account => account.status !== 'paid'
-    );
-  }
-
-  filteredAccounts.sort((a, b) => {
-    const scoreA = getSortScore(a);
-    const scoreB = getSortScore(b);
-
-    if (scoreA !== scoreB) {
-      return scoreA - scoreB;
+      return receivedIncomes.sort((a, b) =>
+        b.date.localeCompare(a.date)
+      );
     }
 
-    return a.due_date.localeCompare(b.due_date);
-  });
+    let expenses = (accounts as Account[])
+      .filter(account => account.type === 'expense');
 
-  /*
-   * HOME
-   * Quando o componente recebe "limit", mantém o comportamento antigo:
-   * mostra somente a quantidade solicitada e não cria paginação.
-   */
-  if (limit) {
-    filteredAccounts = filteredAccounts.slice(0, limit);
-  }
+    if (hidePaid) {
+      expenses = expenses.filter(account => account.status !== 'paid');
+    }
 
-  /*
-   * PÁGINA CONTAS
-   * Sem "limit", a lista completa é dividida em páginas de 4.
-   */
-  const totalPages = limit
-    ? 1
-    : Math.max(1, Math.ceil(filteredAccounts.length / ITEMS_PER_PAGE));
+    return expenses.map(account => ({
+      id: account.id,
+      title: account.title,
+      amount_cents: account.amount_cents,
+      date: account.due_date,
+      status: account.status,
+      kind: 'expense' as const,
+      original: account
+    })).sort((a, b) => {
+      const aPaid = a.status === 'paid';
+      const bPaid = b.status === 'paid';
 
-  /*
-   * Se filtros ou quantidade de contas mudarem e a página atual
-   * deixar de existir, volta automaticamente para a última página válida.
-   */
-  useEffect(() => {
-    setCurrentPage(page => Math.min(page, totalPages));
-  }, [totalPages]);
+      if (aPaid && !bPaid) return 1;
+      if (!aPaid && bPaid) return -1;
 
-  /*
-   * Quando mudar o tipo ou esconder/mostrar contas pagas,
-   * começa novamente na primeira página.
-   */
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [type, hidePaid]);
+      return a.date.localeCompare(b.date);
+    });
+  }, [accounts, incomes, type, hidePaid]);
 
-  if (filteredAccounts.length === 0) {
-    return (
-      <div className="text-center text-gray-500 py-10 bg-white rounded-2xl border border-dashed border-gray-300">
-        {type === 'income'
-          ? 'Nenhuma receita cadastrada.'
-          : 'Nenhuma despesa cadastrada.'}
-      </div>
-    );
-  }
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredItems.length / pageSize)
+  );
 
-  const startIndex = limit
-    ? 0
-    : (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentPage = Math.min(page, totalPages - 1);
 
-  const visibleAccounts = limit
-    ? filteredAccounts
-    : filteredAccounts.slice(
-        startIndex,
-        startIndex + ITEMS_PER_PAGE
+  const visibleItems = limit
+    ? filteredItems.slice(0, limit)
+    : filteredItems.slice(
+        currentPage * pageSize,
+        (currentPage + 1) * pageSize
       );
 
-  return (
-    <div className="space-y-4 w-full">
+  const handleIncomePending = async (id: string) => {
+    await IncomeRepository.markAsPending(id);
+  };
 
-      <div className="space-y-3 w-full">
-        {visibleAccounts.map(account => {
-          const priority = AccountService.calculatePriority(account);
-          const isPaid = account.status === 'paid';
-          const isOverdue = AccountService.isAccountOverdue(account);
-          const isToday = account.due_date === today && !isPaid;
+  const handleExpenseToggle = async (account: Account) => {
+    await togglePaid(account.id, account.status === 'paid');
+  };
 
-          return (
-            <div
-              key={account.id}
-              className={`w-full p-4 rounded-2xl shadow-sm border-l-4 bg-white flex items-center justify-between transition-all gap-3 ${
-                isPaid
-                  ? 'border-gray-200 opacity-60'
-                  : (account.type as string) === 'income'
-                    ? 'border-green-500'
-                    : isOverdue
-                      ? 'border-red-600'
-                      : isToday
-                        ? 'border-yellow-500'
-                        : 'border-blue-500'
-              }`}
-            >
-              <div className="flex flex-col flex-1 min-w-0">
-                <h3
-                  className={`font-bold text-base break-words whitespace-normal ${
-                    isPaid
-                      ? 'line-through text-gray-500'
-                      : 'text-gray-900'
-                  }`}
-                >
-                  {account.title}
-                </h3>
+  if (filteredItems.length === 0) {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center">
+        <div className="text-3xl mb-2">
+          {type === 'income' ? '💰' : '📋'}
+        </div>
 
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs font-medium text-gray-500 shrink-0">
-                    {account.due_date.split('-').reverse().join('/')}
-                  </span>
-
-                  {!isPaid && (
-                    <span
-                      className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                        isOverdue
-                          ? 'text-red-700 bg-red-100 border-red-200'
-                          : isToday
-                            ? 'text-yellow-700 bg-yellow-100 border-yellow-200'
-                            : getPriorityColor(priority)
-                      }`}
-                    >
-                      {isOverdue
-                        ? 'Atrasada'
-                        : isToday
-                          ? 'Vence Hoje'
-                          : getPriorityLabel(priority)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-
-                <span
-                  className={`font-bold text-sm sm:text-base tracking-tight amount-text text-right whitespace-nowrap ${
-                    isPaid
-                      ? 'text-gray-400'
-                      : account.type === 'expense'
-                        ? 'text-red-600'
-                        : 'text-green-600'
-                  }`}
-                >
-                  {account.type === 'expense' ? '- ' : '+ '}
-                  {formatBRLFromCents(account.amount_cents)}
-                </span>
-
-                <button
-                  onClick={() => togglePaid(account.id, isPaid)}
-                  className="p-1 rounded-full hover:bg-gray-100 transition focus:outline-none shrink-0"
-                  aria-label={
-                    isPaid
-                      ? 'Marcar como pendente'
-                      : 'Marcar como pago'
-                  }
-                >
-                  {isPaid ? (
-                    <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-green-500" />
-                  ) : (
-                    <Circle className="w-6 h-6 sm:w-7 sm:h-7 text-gray-300 hover:text-gray-400" />
-                  )}
-                </button>
-
-              </div>
-            </div>
-          );
-        })}
+        <p className="text-sm font-medium text-gray-500">
+          {type === 'income'
+            ? 'Nenhuma receita recebida.'
+            : 'Nenhuma despesa cadastrada.'}
+        </p>
       </div>
+    );
+  }
 
-      {!limit && totalPages > 1 && (
-        <div className="flex items-center justify-between gap-3 pt-2">
+  return (
+    <div className="space-y-3">
+      {visibleItems.map(item => {
+        const isIncome = item.kind === 'income';
+        const isPaid = !isIncome && item.status === 'paid';
 
-          <button
-            type="button"
-            onClick={() =>
-              setCurrentPage(page => Math.max(1, page - 1))
-            }
-            disabled={currentPage === 1}
-            className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition ${
-              currentPage === 1
-                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                : 'bg-white text-indigo-600 border border-gray-200 shadow-sm hover:bg-indigo-50'
+        const originalAccount = !isIncome
+          ? item.original as Account
+          : null;
+
+        const isOverdue =
+          !isIncome &&
+          originalAccount &&
+          AccountService.isAccountOverdue(originalAccount);
+
+        const isToday =
+          item.date === today;
+
+        return (
+          <div
+            key={`${item.kind}-${item.id}`}
+            className={`group flex items-center gap-3 rounded-2xl border bg-white p-4 transition-all ${
+              isPaid
+                ? 'border-gray-100 opacity-60'
+                : isIncome
+                  ? 'border-green-100'
+                  : isOverdue
+                    ? 'border-red-200'
+                    : 'border-gray-100'
             }`}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={() =>
+                isIncome
+                  ? handleIncomePending(item.id)
+                  : handleExpenseToggle(item.original as Account)
+              }
+              className="shrink-0"
+              title={
+                isIncome
+                  ? 'Marcar como não recebida'
+                  : isPaid
+                    ? 'Marcar como pendente'
+                    : 'Marcar como pago'
+              }
+            >
+              {isIncome ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-600">
+                  <Check size={18} strokeWidth={3} />
+                </div>
+              ) : isPaid ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                  <Check size={18} strokeWidth={3} />
+                </div>
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-300">
+                  <Circle size={20} />
+                </div>
+              )}
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p
+                  className={`truncate text-sm font-bold ${
+                    isPaid
+                      ? 'text-gray-400 line-through'
+                      : isIncome
+                        ? 'text-gray-900'
+                        : 'text-gray-900'
+                  }`}
+                >
+                  {item.title}
+                </p>
+
+                {isIncome && (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                    RECEBIDA
+                  </span>
+                )}
+
+                {!isIncome && isPaid && (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">
+                    PAGO
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-gray-400">
+                  {isIncome ? 'Recebido em' : 'Vencimento'}{' '}
+                  {item.date.split('-').reverse().join('/')}
+                </span>
+
+                {!isIncome && isOverdue && !isPaid && (
+                  <span className="text-[10px] font-bold text-red-500">
+                    ATRASADA
+                  </span>
+                )}
+
+                {!isIncome && isToday && !isPaid && !isOverdue && (
+                  <span className="text-[10px] font-bold text-orange-500">
+                    HOJE
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 text-right">
+              <p
+                className={`text-sm font-black ${
+                  isIncome
+                    ? 'text-green-600'
+                    : isPaid
+                      ? 'text-gray-400'
+                      : 'text-red-600'
+                }`}
+              >
+                {isIncome ? '+' : '-'}
+                {formatBRLFromCents(item.amount_cents)}
+              </p>
+
+              {isIncome && (
+                <button
+                  type="button"
+                  onClick={() => handleIncomePending(item.id)}
+                  className="mt-1 text-[10px] font-bold text-gray-400 hover:text-gray-600"
+                >
+                  Desfazer recebimento
+                </button>
+              )}
+            </div>
+
+            {!isIncome && (
+              <button
+                type="button"
+                onClick={() => deleteAccount(item.id)}
+                className="shrink-0 rounded-lg p-2 text-gray-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                title="Excluir"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {!limit && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <button
+            type="button"
+            disabled={currentPage === 0}
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-gray-500 disabled:opacity-30"
+          >
+            <ChevronLeft size={16} />
             Anterior
           </button>
 
-          <span className="text-xs font-bold text-gray-500 whitespace-nowrap">
-            Página {currentPage} de {totalPages}
+          <span className="text-xs text-gray-400">
+            Página {currentPage + 1} de {totalPages}
           </span>
 
           <button
             type="button"
+            disabled={currentPage >= totalPages - 1}
             onClick={() =>
-              setCurrentPage(page => Math.min(totalPages, page + 1))
+              setPage(p => Math.min(totalPages - 1, p + 1))
             }
-            disabled={currentPage === totalPages}
-            className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition ${
-              currentPage === totalPages
-                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                : 'bg-white text-indigo-600 border border-gray-200 shadow-sm hover:bg-indigo-50'
-            }`}
+            className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-gray-500 disabled:opacity-30"
           >
             Próxima
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight size={16} />
           </button>
-
         </div>
       )}
-
-      {!limit && totalPages > 1 && (
-        <div className="text-center text-[10px] text-gray-400 font-medium">
-          Mostrando {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredAccounts.length)} de {filteredAccounts.length} contas
-        </div>
-      )}
-
     </div>
   );
 }
+
