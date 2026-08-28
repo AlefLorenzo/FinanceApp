@@ -1,17 +1,23 @@
-import { v4 as uuidv4 } from 'uuid';
+﻿import { v4 as uuidv4 } from 'uuid';
 import { db } from '../data/db';
 import type { Account, AccountStatus } from '../types';
 
+const DEFAULT_WALLET_BALANCE_CENTS = 0;
+
 export class AccountRepository {
-  static async create(account: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+  static async create(
+    account: Omit<Account, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<string> {
     const id = uuidv4();
     const now = new Date();
+
     await db.accounts.add({
       ...account,
       id,
       created_at: now,
       updated_at: now,
     });
+
     return id;
   }
 
@@ -20,110 +26,204 @@ export class AccountRepository {
   }
 
   static async getAllExpenses(): Promise<Account[]> {
-    // V5: We now strictly ignore any legacy account where type === 'income'
     const all = await db.accounts.toArray();
-    return all.filter(a => (a.type as string) !== 'income');
+
+    return all.filter(
+      account => (account.type as string) !== 'income'
+    );
   }
 
-  static async update(id: string, updates: Partial<Omit<Account, 'id'>>): Promise<void> {
-    await db.accounts.update(id, { ...updates, updated_at: new Date() });
+  static async update(
+    id: string,
+    updates: Partial<Omit<Account, 'id'>>
+  ): Promise<void> {
+    await db.accounts.update(id, {
+      ...updates,
+      updated_at: new Date(),
+    });
   }
 
-  static async updateStatus(id: string, status: AccountStatus): Promise<void> {
-    await db.accounts.update(id, { status, updated_at: new Date() });
+  static async updateStatus(
+    id: string,
+    status: AccountStatus
+  ): Promise<void> {
+    await db.accounts.update(id, {
+      status,
+      updated_at: new Date(),
+    });
   }
 
-  // --- EVENT-DRIVEN PAYMENT LOGIC (ATOMIC) ---
-
+  /**
+   * Marca uma conta como paga e registra o evento financeiro
+   * de forma atômica.
+   */
   static async markAsPaid(accountId: string): Promise<void> {
     const account = await db.accounts.get(accountId);
-    if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
 
-    if (account.debtInstallmentId) {
-      const { DebtRepository } = await import('./DebtRepository');
-      return DebtRepository.payInstallment(account.debtInstallmentId, account.amount_cents);
+    if (
+      !account ||
+      account.status === 'paid' ||
+      account.status === 'cancelled' ||
+      (account.type as string) === 'income'
+    ) {
+      return;
     }
 
-    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
-      // Re-fetch inside transaction
-      const account = await db.accounts.get(accountId);
-      if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
+    // Dívidas são processadas pelo DebtRepository,
+    // pois precisam atualizar também a parcela.
+    if (account.debtInstallmentId) {
+      const { DebtRepository } = await import('./DebtRepository');
 
-      const now = new Date();
+      await DebtRepository.payInstallment(
+        account.debtInstallmentId,
+        account.amount_cents
+      );
 
-      // 1. Update account
-      await db.accounts.update(accountId, { status: 'paid', updated_at: now });
+      return;
+    }
 
-      // 2. Record payment history
-      await db.payments.add({
-        id: uuidv4(),
-        account_id: accountId,
-        amount_cents: account.amount_cents,
-        paid_at: now,
-        payment_method: 'other',
-        created_at: now,
-      });
+    await db.transaction(
+      'rw',
+      db.accounts,
+      db.payments,
+      db.wallets,
+      db.transactions,
+      async () => {
+        const current = await db.accounts.get(accountId);
 
-      // 3. Update Wallet Balance (- amount)
-      const wallets = await db.wallets.toArray();
-      let wallet = wallets[0];
-      
-      if (!wallet) {
-        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
-        await db.wallets.add(wallet);
-      }
+        if (
+          !current ||
+          current.status === 'paid' ||
+          current.status === 'cancelled' ||
+          (current.type as string) === 'income'
+        ) {
+          return;
+        }
 
-      await db.wallets.update(wallet.id, { 
-        balance_cents: wallet.balance_cents - account.amount_cents,
-        updated_at: now
-      });
+        const now = new Date();
 
-      // 4. Record Transaction log
-      await db.transactions.add({
-        id: uuidv4(),
-        wallet_id: wallet.id,
-        reference_id: accountId,
-        type: 'expense_paid',
-        amount_cents: -account.amount_cents, // negative
-        date: now,
-        description: `Pagamento: ${account.title}`,
-        created_at: now
-      });
-    });
-  }
+        await db.accounts.update(accountId, {
+          status: 'paid',
+          updated_at: now,
+        });
 
-  static async markAsPending(accountId: string): Promise<void> {
-    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
-      const account = await db.accounts.get(accountId);
-      if (!account || account.status === 'pending' || (account.type as string) === 'income') return;
+        await db.payments.add({
+          id: uuidv4(),
+          account_id: accountId,
+          amount_cents: current.amount_cents,
+          paid_at: now,
+          payment_method: 'other',
+          created_at: now,
+        });
 
-      const now = new Date();
+        const wallets = await db.wallets.toArray();
 
-      // 1. Reverse account status
-      await db.accounts.update(accountId, { status: 'pending', updated_at: now });
+        let wallet = wallets[0];
 
-      // 2. Delete payment history
-      const payments = await db.payments.where('account_id').equals(accountId).toArray();
-      for (const p of payments) {
-        await db.payments.delete(p.id);
-      }
+        if (!wallet) {
+          wallet = {
+            id: 'default',
+            name: 'Minha Conta',
+            balance_cents: DEFAULT_WALLET_BALANCE_CENTS,
+            created_at: now,
+            updated_at: now,
+          };
 
-      // 3. Reverse Wallet Balance (+ amount)
-      const wallets = await db.wallets.toArray();
-      const wallet = wallets[0];
-      if (wallet) {
-        await db.wallets.update(wallet.id, { 
-          balance_cents: wallet.balance_cents + account.amount_cents,
-          updated_at: now
+          await db.wallets.add(wallet);
+        }
+
+        await db.wallets.update(wallet.id, {
+          balance_cents:
+            wallet.balance_cents - current.amount_cents,
+          updated_at: now,
+        });
+
+        await db.transactions.add({
+          id: uuidv4(),
+          wallet_id: wallet.id,
+          reference_id: accountId,
+          type: 'expense_paid',
+          amount_cents: -current.amount_cents,
+          date: now,
+          description: `Pagamento: ${current.title}`,
+          created_at: now,
         });
       }
+    );
+  }
 
-      // 4. Delete matching transaction history
-      const txs = await db.transactions.where('reference_id').equals(accountId).toArray();
-      for (const t of txs) {
-        await db.transactions.delete(t.id);
+  /**
+   * Reverte uma conta paga para pendente.
+   */
+  static async markAsPending(accountId: string): Promise<void> {
+    const account = await db.accounts.get(accountId);
+
+    if (
+      !account ||
+      account.status === 'pending' ||
+      account.status === 'cancelled'
+    ) {
+      return;
+    }
+
+    if (account.debtInstallmentId) {
+      throw new Error(
+        'Parcelas de dívida devem ser revertidas pelo DebtRepository.'
+      );
+    }
+
+    await db.transaction(
+      'rw',
+      db.accounts,
+      db.payments,
+      db.wallets,
+      db.transactions,
+      async () => {
+        const current = await db.accounts.get(accountId);
+
+        if (!current || current.status !== 'paid') {
+          return;
+        }
+
+        const now = new Date();
+
+        await db.accounts.update(accountId, {
+          status: 'pending',
+          updated_at: now,
+        });
+
+        const payments = await db.payments
+          .where('account_id')
+          .equals(accountId)
+          .toArray();
+
+        for (const payment of payments) {
+          await db.payments.delete(payment.id);
+        }
+
+        const wallets = await db.wallets.toArray();
+        const wallet = wallets[0];
+
+        if (wallet) {
+          await db.wallets.update(wallet.id, {
+            balance_cents:
+              wallet.balance_cents + current.amount_cents,
+            updated_at: now,
+          });
+        }
+
+        const transactions = await db.transactions
+          .where('reference_id')
+          .equals(accountId)
+          .toArray();
+
+        for (const transaction of transactions) {
+          if (transaction.type === 'expense_paid') {
+            await db.transactions.delete(transaction.id);
+          }
+        }
       }
-    });
+    );
   }
 
   static async delete(id: string): Promise<void> {
