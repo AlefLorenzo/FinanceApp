@@ -20,6 +20,7 @@ import { AndroidAppView } from './components/AndroidAppView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [accountType, setAccountType] = useState<'expense' | 'income'>('expense');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -30,7 +31,11 @@ function App() {
   ) || 0;
 
   const handleQuickAddAction = (action: string) => {
-    if (action === 'expense' || action === 'income') {
+    if (action === 'expense') {
+      setAccountType('expense');
+      setActiveTab('accounts');
+    } else if (action === 'income') {
+      setAccountType('income');
       setActiveTab('accounts');
     } else if (action === 'debt') {
       setActiveTab('debts');
@@ -69,19 +74,61 @@ function App() {
             )}
 
             {activeTab === 'accounts' && (
-              <section className="w-full max-w-5xl mx-auto space-y-6">
+              <section className="w-full max-w-5xl mx-auto">
 
-                <div className="w-full">
-                  <AccountForm />
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-3 sm:p-4 mb-6">
+                  <div className="grid grid-cols-2 gap-2">
+
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('expense')}
+                      className={`min-h-[56px] rounded-2xl font-black text-sm sm:text-base transition-all ${
+                        accountType === 'expense'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      🔴 Despesas
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('income')}
+                      className={`min-h-[56px] rounded-2xl font-black text-sm sm:text-base transition-all ${
+                        accountType === 'income'
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      🟢 Receitas
+                    </button>
+
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    Minhas Contas
-                  </h2>
-                </div>
+                <div className="space-y-6">
 
-                <AccountList />
+                  <AccountForm type={accountType} />
+
+                  <div className="flex items-center justify-between px-1">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-black text-gray-800">
+                        {accountType === 'expense'
+                          ? 'Minhas Despesas'
+                          : 'Minhas Receitas'}
+                      </h2>
+
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                        {accountType === 'expense'
+                          ? 'Contas que você precisa pagar'
+                          : 'Valores que você espera receber'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <AccountList type={accountType} />
+
+                </div>
               </section>
             )}
 
@@ -162,6 +209,7 @@ function App() {
           onClose={() => setIsNotificationOpen(false)}
         />
       )}
+
     </div>
   );
 }
