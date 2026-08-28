@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
 import { DebtService } from '../services/DebtService';
@@ -13,6 +13,7 @@ import { formatBRLFromCents } from '../utils/currency';
 export function DebtsView() {
   const [activeView, setActiveView] = useState<'list' | 'create' | 'detail'>('list');
   const [selectedDebtId, setSelectedDebtId] = useState<string | null>(null);
+  const [debtPage, setDebtPage] = useState(1);
 
   const debts = useLiveQuery(() => db.debts.toArray(), []) || [];
   const allInstallments = useLiveQuery(() => db.debt_installments.toArray(), []) || [];
@@ -28,6 +29,14 @@ export function DebtsView() {
       return sum + DebtService.calculateDebtRemaining(dInsts);
     }, 0);
   }, [activeDebts, allInstallments]);
+
+  const DEBTS_PER_PAGE = 4;
+  const totalDebtPages = Math.max(1, Math.ceil(activeDebts.length / DEBTS_PER_PAGE));
+
+  const paginatedDebts = useMemo(() => {
+    const start = (debtPage - 1) * DEBTS_PER_PAGE;
+    return activeDebts.slice(start, start + DEBTS_PER_PAGE);
+  }, [activeDebts, debtPage]);
 
   const overdueCount = useMemo(() => {
     return allInstallments.filter(i => DebtService.isOverdue(i, today)).length;
@@ -53,7 +62,7 @@ export function DebtsView() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-indigo-300" />
-            <h2 className="text-sm font-black uppercase tracking-widest text-indigo-300">Minhas Dívidas</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-indigo-300">Minhas DÃ­vidas</h2>
           </div>
           <p className="text-gray-400 text-sm mb-1">Total Restante</p>
           <h1 className="text-4xl font-black mb-6">{formatBRLFromCents(totalRemainingCents)}</h1>
@@ -76,14 +85,14 @@ export function DebtsView() {
         className="w-full bg-white text-indigo-600 font-black p-5 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-transform"
       >
         <Plus className="w-5 h-5" />
-        NOVA DÍVIDA
+        NOVA DÃVIDA
       </button>
 
       <div className="space-y-4">
         {activeDebts.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">Nenhuma dívida cadastrada.</p>
+          <p className="text-center text-gray-400 py-8">Nenhuma dÃ­vida cadastrada.</p>
         ) : (
-          activeDebts.map(debt => {
+          paginatedDebts.map(debt => {
             const dInsts = allInstallments.filter(i => i.debt_id === debt.id);
             const remaining = DebtService.calculateDebtRemaining(dInsts);
             const paidCount = DebtService.countPaidInstallments(dInsts);
@@ -99,7 +108,7 @@ export function DebtsView() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      {isDebtOverdue ? <span className="text-xs">🔴</span> : <span className="text-xs">🟡</span>}
+                      {isDebtOverdue ? <span className="text-xs">ðŸ”´</span> : <span className="text-xs">ðŸŸ¡</span>}
                       <span className={`text-[10px] font-black uppercase tracking-widest ${isDebtOverdue ? 'text-red-500' : 'text-yellow-600'}`}>
                         {isDebtOverdue ? 'Atrasada' : 'Em Andamento'}
                       </span>
@@ -117,19 +126,47 @@ export function DebtsView() {
                   {nextPending && (
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      Próx: {format(parseISO(nextPending.due_date), 'dd/MM')}
+                      PrÃ³x: {format(parseISO(nextPending.due_date), 'dd/MM')}
                     </span>
                   )}
                 </div>
 
                 <button className="w-full py-3 bg-gray-50 text-indigo-600 font-bold rounded-xl text-sm flex items-center justify-center gap-1">
-                  VER DÍVIDA <ChevronRight className="w-4 h-4" />
+                  VER DÃVIDA <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             );
           })
         )}
       </div>
+
+      {activeDebts.length > DEBTS_PER_PAGE && (
+        <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-gray-100 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setDebtPage(page => Math.max(1, page - 1))}
+            disabled={debtPage === 1}
+            className="flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm text-indigo-600 disabled:text-gray-300 disabled:bg-gray-50 hover:bg-indigo-50 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Anterior
+          </button>
+
+          <span className="text-xs font-black text-gray-500">
+            Página {debtPage} de {totalDebtPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setDebtPage(page => Math.min(totalDebtPages, page + 1))}
+            disabled={debtPage === totalDebtPages}
+            className="flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm text-indigo-600 disabled:text-gray-300 disabled:bg-gray-50 hover:bg-indigo-50 transition"
+          >
+            Próxima
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -141,12 +178,21 @@ export function DebtsView() {
 function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: DebtInstallment[], onBack: () => void }) {
   const [payModal, setPayModal] = useState<{ isOpen: boolean, inst: DebtInstallment | null }>({ isOpen: false, inst: null });
   const [settleModal, setSettleModal] = useState(false);
+  const [installmentPage, setInstallmentPage] = useState(1);
+
+  const INSTALLMENTS_PER_PAGE = 4;
 
   const today = getTodayISO();
   const paidCount = DebtService.countPaidInstallments(installments);
   const remainingCents = DebtService.calculateDebtRemaining(installments);
   const totalPaidCents = debt.original_amount_cents - remainingCents; // Approximation for UI
   const progressPct = Math.round((paidCount / debt.total_installments) * 100);
+
+  const totalInstallmentPages = Math.max(1, Math.ceil(installments.length / INSTALLMENTS_PER_PAGE));
+  const paginatedInstallments = installments.slice(
+    (installmentPage - 1) * INSTALLMENTS_PER_PAGE,
+    installmentPage * INSTALLMENTS_PER_PAGE
+  );
 
 
   const handleSettle = async () => {
@@ -197,7 +243,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
           onClick={() => setSettleModal(true)}
           className="w-full bg-indigo-50 text-indigo-700 font-black p-4 rounded-2xl shadow-sm border border-indigo-100 active:scale-95 transition-transform"
         >
-          QUITAR DÍVIDA
+          QUITAR DÃVIDA
         </button>
       )}
 
@@ -205,7 +251,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
       <div>
         <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">Parcelas</h3>
         <div className="space-y-3">
-          {installments.map(inst => {
+          {paginatedInstallments.map(inst => {
             const status = DebtService.getInstallmentStatus(inst, today);
             const remaining = DebtService.remainingCents(inst);
             
@@ -214,13 +260,13 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
             
             if (status === 'paid') {
               statusColor = 'bg-gray-50 border-gray-100 opacity-60';
-              badge = '✅ PAGA';
+              badge = 'âœ… PAGA';
             } else if (status === 'overdue') {
               statusColor = 'bg-red-50 border-red-200';
-              badge = '🔴 ATRASADA';
+              badge = 'ðŸ”´ ATRASADA';
             } else if (status === 'partial') {
               statusColor = 'bg-yellow-50 border-yellow-200';
-              badge = '🟡 PARCIAL';
+              badge = 'ðŸŸ¡ PARCIAL';
             }
 
             return (
@@ -267,6 +313,33 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
         </div>
       </div>
 
+      {installments.length > INSTALLMENTS_PER_PAGE && (
+        <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-gray-100 shadow-sm mt-4">
+          <button
+            type="button"
+            onClick={() => setInstallmentPage(page => Math.max(1, page - 1))}
+            disabled={installmentPage === 1}
+            className="flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm text-indigo-600 disabled:text-gray-300 disabled:bg-gray-50 hover:bg-indigo-50 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Anterior
+          </button>
+
+          <span className="text-xs font-black text-gray-500">
+            Página {installmentPage} de {totalInstallmentPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setInstallmentPage(page => Math.min(totalInstallmentPages, page + 1))}
+            disabled={installmentPage === totalInstallmentPages}
+            className="flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm text-indigo-600 disabled:text-gray-300 disabled:bg-gray-50 hover:bg-indigo-50 transition"
+          >
+            Próxima
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       {/* Pay Modal */}
       {payModal.isOpen && payModal.inst && (
         <PayInstallmentModal 
@@ -279,7 +352,7 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
       {settleModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
-            <h3 className="text-lg font-black text-center mb-6">QUITAR DÍVIDA</h3>
+            <h3 className="text-lg font-black text-center mb-6">QUITAR DÃVIDA</h3>
             
             <div className="space-y-4 mb-6">
               <div className="flex justify-between py-3 border-b border-gray-100">
@@ -291,14 +364,14 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
                 <span className="font-bold">{debt.total_installments - paidCount}</span>
               </div>
               <div className="flex justify-between py-3 bg-gray-50 rounded-xl px-4">
-                <span className="text-gray-900 font-bold">Valor para quitação</span>
+                <span className="text-gray-900 font-bold">Valor para quitaÃ§Ã£o</span>
                 <span className="font-black text-indigo-600 text-lg">{formatBRLFromCents(remainingCents)}</span>
               </div>
             </div>
 
             <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-xs font-medium flex gap-3 mb-6">
               <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-600" />
-              <p>⚠️ Essa ação registrará a quitação antecipada da dívida e debitará o valor do seu saldo atual.</p>
+              <p>âš ï¸ Essa aÃ§Ã£o registrarÃ¡ a quitaÃ§Ã£o antecipada da dÃ­vida e debitarÃ¡ o valor do seu saldo atual.</p>
             </div>
 
             <div className="flex gap-3">
@@ -353,7 +426,7 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
           </div>
           {inst.paid_amount_cents > 0 && (
             <div className="flex justify-between py-2 text-green-600">
-              <span>Já pago</span>
+              <span>JÃ¡ pago</span>
               <span className="font-bold">{formatBRLFromCents(inst.paid_amount_cents)}</span>
             </div>
           )}
@@ -372,7 +445,7 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
             autoFocus
           />
           <p className="text-center text-xs text-gray-400 mt-2">
-            Pode ser parcial. O saldo será atualizado na hora.
+            Pode ser parcial. O saldo serÃ¡ atualizado na hora.
           </p>
         </div>
 
@@ -423,17 +496,17 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
         <button type="button" onClick={onBack} className="p-2 bg-white rounded-full shadow-sm text-gray-600">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-lg font-black text-gray-900 uppercase">NOVA DÍVIDA</h2>
+        <h2 className="text-lg font-black text-gray-900 uppercase">NOVA DÃVIDA</h2>
       </div>
 
       <form onSubmit={handleCreate} className="space-y-5">
         <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">TÍTULO</label>
-            <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Empréstimo Banco" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">TÃTULO</label>
+            <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: EmprÃ©stimo Banco" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CREDOR (BANCO/INSTITUIÇÃO)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CREDOR (BANCO/INSTITUIÃ‡ÃƒO)</label>
             <input required value={creditor} onChange={e => setCreditor(e.target.value)} placeholder="Ex: Nubank" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div>
@@ -457,7 +530,7 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Nº PARCELAS</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">NÂº PARCELAS</label>
               <input required type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
             <div>
@@ -471,16 +544,25 @@ function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">1º VENCIMENTO</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">1Âº VENCIMENTO</label>
             <input required type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
         </div>
 
         <button type="submit" className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-sm active:scale-95 transition-transform">
-          CRIAR DÍVIDA E GERAR PARCELAS
+          CRIAR DÃVIDA E GERAR PARCELAS
         </button>
       </form>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 
