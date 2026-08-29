@@ -92,6 +92,17 @@ export class AccountRepository {
       async () => {
         const current = await db.accounts.get(accountId);
 
+        // Idempotency: avoid duplicate transaction if already recorded
+        const existingTx = await db.transactions
+          .where('reference_id')
+          .equals(accountId)
+          .and(tx => tx.type === 'expense_paid')
+          .first();
+        if (existingTx) {
+          // Transaction already exists; ensure account status is consistent and abort
+          await db.accounts.update(accountId, { status: 'paid', updated_at: new Date() });
+          return;
+        }
         if (
           !current ||
           current.status === 'paid' ||

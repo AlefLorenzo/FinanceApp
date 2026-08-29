@@ -64,6 +64,17 @@ export class IncomeRepository {
       async () => {
         const income = await db.income.get(incomeId);
 
+        // Idempotency: avoid duplicate transaction if already recorded
+        const existingTx = await db.transactions
+          .where('reference_id')
+          .equals(incomeId)
+          .and(tx => tx.type === 'income_received')
+          .first();
+        if (existingTx) {
+          // Transaction already exists; ensure income status is consistent and abort
+          await db.income.update(incomeId, { status: 'received', updated_at: new Date() });
+          return;
+        }
         if (
           !income ||
           income.status === 'received' ||
