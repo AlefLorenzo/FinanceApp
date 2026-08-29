@@ -402,16 +402,25 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
 function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose: () => void }) {
   const remaining = DebtService.remainingCents(inst);
   const [payAmountCents, setPayAmountCents] = useState(remaining);
+  const [loading, setLoading] = useState(false);
 
   const handlePay = async () => {
     let amountCents = payAmountCents;
-    if (amountCents <= 0) return;
+    if (amountCents <= 0 || loading) return;
     
     // Cap visually to avoid confusion, though repo already caps it
     if (amountCents > remaining) amountCents = remaining;
 
-    await DebtRepository.payInstallment(inst.id, amountCents);
-    onClose();
+    setLoading(true);
+    try {
+      await DebtRepository.payInstallment(inst.id, amountCents);
+      alert('Parcela paga com sucesso!');
+      onClose();
+    } catch {
+      alert('Erro ao pagar a parcela. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -449,10 +458,12 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl">CANCELAR</button>
-          <button onClick={handlePay} className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl">REGISTRAR</button>
-        </div>
+          <div className="flex gap-3">
+            <button onClick={onClose} disabled={loading} className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">CANCELAR</button>
+            <button onClick={handlePay} disabled={loading} className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed">
+              {loading ? 'Pagando…' : 'REGISTRAR'}
+            </button>
+          </div>
       </div>
     </div>
   );

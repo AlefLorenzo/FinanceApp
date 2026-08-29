@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, ChevronLeft, ChevronRight, Circle, Trash2 } from 'lucide-react';
 import { db } from '../data/db';
@@ -94,8 +94,26 @@ export function AccountList({
     await IncomeRepository.markAsPending(id);
   };
 
+  const [loadingExpenseIds, setLoadingExpenseIds] = useState<Set<string>>(new Set());
+
   const handleExpenseToggle = async (account: Account) => {
-    await togglePaid(account.id, account.status === 'paid');
+    if (!account.id || loadingExpenseIds.has(account.id)) return;
+    const wasPaid = account.status === 'paid';
+    setLoadingExpenseIds(prev => new Set(prev).add(account.id!));
+    try {
+      await togglePaid(account.id, wasPaid);
+      if (!wasPaid) {
+        alert('Conta paga com sucesso!');
+      }
+    } catch {
+      alert('Erro ao pagar a conta. Tente novamente.');
+    } finally {
+      setLoadingExpenseIds(prev => {
+        const next = new Set(prev);
+        next.delete(account.id!);
+        return next;
+      });
+    }
   };
 
   if (filteredItems.length === 0) {
@@ -147,12 +165,13 @@ export function AccountList({
           >
             <button
               type="button"
+              disabled={!isIncome && item.id != null && loadingExpenseIds.has(item.id)}
               onClick={() =>
                 isIncome
                   ? handleIncomePending(item.id)
                   : handleExpenseToggle(item.original as Account)
               }
-              className="shrink-0"
+              className="shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
               title={
                 isIncome
                   ? 'Marcar como não recebida'
@@ -161,7 +180,11 @@ export function AccountList({
                     : 'Marcar como pago'
               }
             >
-              {isIncome ? (
+              {!isIncome && item.id != null && loadingExpenseIds.has(item.id) ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-400 animate-pulse">
+                  <Circle size={20} />
+                </div>
+              ) : isIncome ? (
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-600">
                   <Check size={18} strokeWidth={3} />
                 </div>
