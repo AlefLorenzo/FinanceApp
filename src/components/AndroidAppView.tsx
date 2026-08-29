@@ -28,6 +28,8 @@ export function AndroidAppView({ mode }: { mode: 'download' | 'info' }) {
               <a 
                 href={apkUrl}
                 download
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full block text-center bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-sm active:scale-95 transition-transform"
               >
                 BAIXAR APK

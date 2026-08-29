@@ -137,6 +137,8 @@ export function SettingsView() {
                   <a
                     href={apkUrl}
                     download
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2 bg-white hover:bg-gray-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors"
                   >
                     <Download className="w-4 h-4" />
@@ -155,6 +157,8 @@ export function SettingsView() {
                 <a
                   href={apkUrl}
                   download
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors"
                 >
                   <Download className="w-4 h-4" />
