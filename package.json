@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "android:build": "npm run build && powershell -Command \"Copy-Item -Path ./dist/* -Destination ./cordova/www -Recurse -Force\" && cd cordova && npx cordova build android"
+    "android:build": "npm run build && powershell -Command \"Remove-Item -Path ./cordova/www/* -Recurse -Force -ErrorAction SilentlyContinue; Copy-Item -Path ./dist/* -Destination ./cordova/www -Recurse -Force\" && cd cordova && npx cordova build android --buildConfig build.json"
   },
   "dependencies": {
     "date-fns": "^4.4.0",

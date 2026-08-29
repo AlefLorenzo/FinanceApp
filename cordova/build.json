@@ -1,0 +1,18 @@
+{
+    "android": {
+        "debug": {
+            "keystore": "finance-release.jks",
+            "storePassword": "FinanceApp2024!",
+            "alias": "financeapp",
+            "password": "FinanceApp2024!",
+            "keystoreType": "pkcs12"
+        },
+        "release": {
+            "keystore": "finance-release.jks",
+            "storePassword": "FinanceApp2024!",
+            "alias": "financeapp",
+            "password": "FinanceApp2024!",
+            "keystoreType": "pkcs12"
+        }
+    }
+}
