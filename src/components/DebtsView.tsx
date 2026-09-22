@@ -91,7 +91,13 @@ export function DebtsView() {
 
       <div className="space-y-4">
         {activeDebts.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">Nenhuma dívida cadastrada.</p>
+          <div className="rounded-[2rem] border border-gray-100 bg-white p-8 md:p-12 text-center shadow-sm">
+            <div className="text-4xl md:text-5xl mb-4">💳</div>
+            <h3 className="text-lg font-black text-gray-800 mb-2">Sem dívidas ativas</h3>
+            <p className="text-sm font-medium text-gray-500 max-w-sm mx-auto leading-relaxed">
+              Você não possui nenhuma dívida ou empréstimo cadastrado. Ótimo trabalho mantendo suas contas em dia!
+            </p>
+          </div>
         ) : (
           paginatedDebts.map(debt => {
             const dInsts = allInstallments.filter(i => i.debt_id === debt.id);

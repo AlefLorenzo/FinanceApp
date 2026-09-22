@@ -239,8 +239,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void 
       </div>
 
       {/* 5. PRÓXIMOS DIAS */}
-      {upcomingBills.length > 0 && (
-        <div>
+      <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Próximos dias</h3>
             <button 
@@ -251,27 +250,33 @@ export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void 
             </button>
           </div>
           <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
-            {upcomingBills.map(bill => {
-              const isOverdue = AccountService.isAccountOverdue(bill);
-              const dateLabel = format(new Date(bill.due_date + 'T00:00:00'), "d MMM", { locale: ptBR });
-              return (
-                <div key={bill.id} className="flex items-center justify-between px-5 py-3.5 gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-base shrink-0">{isOverdue ? '🔴' : '🔵'}</span>
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm text-gray-900 truncate">{bill.title}</p>
-                      <p className="text-xs text-gray-400">{dateLabel}</p>
+            {upcomingBills.length > 0 ? (
+              upcomingBills.map(bill => {
+                const isOverdue = AccountService.isAccountOverdue(bill);
+                const dateLabel = format(new Date(bill.due_date + 'T00:00:00'), "d MMM", { locale: ptBR });
+                return (
+                  <div key={bill.id} className="flex items-center justify-between px-5 py-3.5 gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-base shrink-0">{isOverdue ? '🔴' : '🔵'}</span>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-gray-900 truncate">{bill.title}</p>
+                        <p className="text-xs text-gray-400">{dateLabel}</p>
+                      </div>
                     </div>
+                    <span className={`font-black text-sm shrink-0 ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
+                      {fmt(bill.amount_cents)}
+                    </span>
                   </div>
-                  <span className={`font-black text-sm shrink-0 ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
-                    {fmt(bill.amount_cents)}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="p-6 text-center text-gray-400 bg-gray-50/50">
+                <p className="text-sm font-medium">Nenhuma conta para os próximos 7 dias.</p>
+                <p className="text-xs mt-1">Tempo de respirar fundo e relaxar.</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
     </div>
   );
 }
