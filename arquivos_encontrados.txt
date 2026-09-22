@@ -1,0 +1,13 @@
+C:\finance\src\components\AccountForm.tsx
+C:\finance\src\components\AccountList.tsx
+C:\finance\src\components\AppDownloadButton.tsx
+C:\finance\src\components\DebtsView.tsx
+C:\finance\src\data\db.ts
+C:\finance\src\hooks\useAccounts.ts
+C:\finance\src\repository\AccountRepository.ts
+C:\finance\src\repository\DebtRepository.ts
+C:\finance\src\repository\IncomeRepository.ts
+C:\finance\src\repository\PaymentRepository.ts
+C:\finance\src\repository\RecurringAccountRepository.ts
+C:\finance\src\services\AccountService.ts
+C:\finance\src\services\DebtService.ts

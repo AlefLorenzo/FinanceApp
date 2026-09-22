@@ -1,0 +1,608 @@
+
+============================================================
+ARQUIVO: C:\finance\src\types\index.ts
+============================================================
+
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  created_at: Date;
+}
+
+export type AccountStatus = 'pending' | 'paid' | 'cancelled';
+export type AccountType = 'expense'; // V5: Only expenses now. Income is separated.
+export type AccountPriority = 'urgent' | 'next' | 'attention' | 'normal';
+
+export interface Account {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  due_date: string; // YYYY-MM-DD
+  category_id: string;
+  status: AccountStatus;
+  type: AccountType; // Keeping for retro-compatibility / structural safety
+  recurring_id?: string;
+  installment_id?: string;
+  installment_current?: number;
+  installment_total?: number;
+  debtId?: string;
+  debtInstallmentId?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type IncomeStatus = 'pending' | 'received' | 'cancelled';
+
+export interface Income {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  expected_date: string; // YYYY-MM-DD
+  received_date?: string; // YYYY-MM-DD
+  category_id: string;
+  status: IncomeStatus;
+  recurring_id?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type PaymentMethod = 'cash' | 'pix' | 'debit_card' | 'credit_card' | 'bank_transfer' | 'other';
+
+export interface Payment {
+  id: string;
+  account_id: string;
+  amount_cents: number;
+  paid_at: Date;
+  payment_method: PaymentMethod;
+  note?: string;
+  created_at: Date;
+}
+
+// debt_settlement added for Phase 2
+export type TransactionType =
+  | 'expense_paid'
+  | 'income_received'
+  | 'debt_paid'
+  | 'debt_settlement'
+  | 'reserve_contribution'
+  | 'manual_adjustment';
+
+export interface AppTransaction {
+  id: string;
+  wallet_id: string;
+  reference_id: string; // ID of Account, Income, Debt, etc.
+  type: TransactionType;
+  amount_cents: number; // Positive for incoming, negative for outgoing
+  date: Date;
+  description: string;
+  created_at: Date;
+}
+
+// ─── Debt Model ─────────────────────────────────────────────────────────────
+
+export type DebtStatus = 'active' | 'paid_off' | 'cancelled';
+
+/**
+ * Represents the primary financial obligation.
+ * paid_installments is a DERIVED/CACHE field — DebtInstallments are the source of truth.
+ */
+export interface Debt {
+  id: string;
+  title: string;
+  creditor: string;
+  /** Category inherited from the debt and propagated to each generated Account. */
+  category_id: string;
+  original_amount_cents: number;
+  total_installments: number;
+  /** Cache field. Source of truth = COUNT(installments WHERE status='paid') */
+  paid_installments: number;
+  installment_amount_cents: number; // value per installment (may differ with interest)
+  interest_rate?: number;           // % per period, optional
+  first_due_date: string;           // YYYY-MM-DD — date of installment #1
+  status: DebtStatus;
+  /**
+   * Settlement amount for early payoff. May differ from sum of remaining installments
+   * (e.g., discount, renegotiation, fees). Always store explicitly — never assume
+   * settlementAmountCents === sum of remaining installments.
+   */
+  settlement_amount_cents?: number;
+  settled_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type DebtInstallmentStatus = 'pending' | 'partial' | 'paid';
+
+/**
+ * Represents an individual installment obligation.
+ * The actual overdue determination is computed at runtime via DebtService.getInstallmentStatus()
+ * and is NOT stored to avoid stale data when the app is opened after several days.
+ */
+export interface DebtInstallment {
+  id: string;
+  debt_id: string;
+  account_id: string;           // FK → Account generated for this installment
+  installment_number: number;   // 1-based
+  amount_cents: number;         // Full installment value
+  paid_amount_cents: number;    // How much has been paid (0..amount_cents)
+  due_date: string;             // YYYY-MM-DD
+  status: DebtInstallmentStatus;
+  paid_at?: Date;               // Only set when fully paid
+  created_at: Date;
+}
+
+// ─── Other models ────────────────────────────────────────────────────────────
+
+export type RecurringFrequency = 'monthly';
+
+export interface RecurringAccount {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  type: AccountType | 'income'; // Legacy union needed here for now
+  frequency: RecurringFrequency;
+  day_of_month: number;
+  start_date: string;
+  end_date?: string;
+  active: boolean;
+  category_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM
+  description?: string;
+  category: 'personal' | 'work' | 'health' | 'study' | 'financial';
+  completed: boolean;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
+  created_at: Date;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'due_soon' | 'overdue' | 'income_expected' | 'income_received' | 'reserve_tip' | 'invest_tip' | 'goal' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  reference_id?: string;
+  created_at: Date;
+}
+
+export interface AppSettings {
+  id: string;
+  hide_values: boolean;
+  theme: 'light' | 'dark' | 'system';
+  minimum_reserve_cents: number;
+  salary_cents: number;
+  salary_day: number;
+  created_at: Date;
+}
+
+export interface Wallet {
+  id: string;
+  name: string;
+  balance_cents: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Reserve {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  target_cents: number;
+  current_cents: number;
+  contribution_cents: number;
+  contribution_frequency: 'weekly' | 'biweekly' | 'monthly';
+  contribution_day: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ReserveContribution {
+  id: string;
+  reserve_id: string;
+  amount_cents: number;
+  note?: string;
+  contributed_at: Date;
+  created_at: Date;
+}
+
+export interface PasswordEntry {
+  id: string;
+  title: string;
+  username?: string;
+  password: string;
+  url?: string;
+  notes?: string;
+  icon?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type InvestmentProfile = 'conservative' | 'moderate' | 'aggressive';
+
+export interface InvestmentPlan {
+  id: string;
+  profile: InvestmentProfile;
+  monthly_amount_cents: number;
+  allocations: { name: string; percent: number; color: string }[];
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface NextAction {
+  type: 'pay' | 'receive' | 'reserve' | 'invest' | 'review';
+  title: string;
+  description: string;
+  amountCents?: number;
+  entityId?: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface FinancialSummary {
+  currentBalanceCents: number;
+  projectedBalanceCents: number;
+  expectedIncomeCents: number;
+  receivedIncomeCents: number;
+  totalExpensesCents: number;
+  paidExpensesCents: number;
+  overdueExpensesCents: number;
+  suggestedReserveCents: number;
+  freeMoneyCents: number;
+  availableForInvestmentCents: number;
+  isTight: boolean;
+  nextAction: NextAction | null;
+  overdueCount: number;
+  // Phase 2 — Debt fields
+  totalDebtRemainingCents: number;       // sum of remaining on all active installments
+  monthlyDebtCommitmentCents: number;    // installments due this calendar month
+  overdueDebtInstallmentsCents: number;  // installments past due (not paid)
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\FinancialEngine.ts
+============================================================
+
+import { formatBRLFromCents } from '../utils/currency';
+import type { Account, Income, Reserve, DebtInstallment, FinancialSummary, NextAction } from '../types';
+import { AccountService } from './AccountService';
+import { DebtService } from './DebtService';
+import { getTodayISO } from '../utils/date';
+
+export class FinancialEngine {
+  static calculateSummary(
+    accounts: Account[],
+    incomes: Income[],
+    reserves: Reserve[],
+    currentBalanceCents: number,
+    debtInstallments: DebtInstallment[] = []
+  ): FinancialSummary {
+    const today = getTodayISO();
+
+    let expectedIncomeCents = 0;
+    let receivedIncomeCents = 0;
+    let totalExpensesCents = 0;
+    let paidExpensesCents = 0;
+    let overdueExpensesCents = 0;
+    let overdueCount = 0;
+
+    // 1. Process Income
+    incomes.forEach(inc => {
+      if (inc.status !== 'cancelled') {
+        expectedIncomeCents += inc.amount_cents;
+        if (inc.status === 'received') {
+          receivedIncomeCents += inc.amount_cents;
+        }
+      }
+    });
+
+    // 2. Process Expenses (Debt installments are already included as Accounts, so this naturally covers projected balance and total expenses without duplication)
+    accounts.filter(a => (a.type as string) !== 'income' && a.status !== 'cancelled').forEach(acc => {
+      totalExpensesCents += acc.amount_cents;
+      
+      // Partial debt payments reflect on account status. If account is pending/partial, 
+      // we only count what is truly paid if we had partial tracking on Account. 
+      // For MVP, if it's 'partial', Account is 'pending'. We don't add to paidExpensesCents.
+      if (acc.status === 'paid') {
+        paidExpensesCents += acc.amount_cents;
+      } else if (acc.status === 'pending' || acc.status === 'partial' as any) {
+        if (AccountService.isAccountOverdue(acc)) {
+          overdueExpensesCents += acc.amount_cents;
+          overdueCount++;
+        }
+      }
+    });
+
+    const pendingExpensesCents = totalExpensesCents - paidExpensesCents;
+    const pendingIncomesCents = expectedIncomeCents - receivedIncomeCents;
+
+    // 3. Reserves calculation
+    const totalReserveTarget = reserves.reduce((sum, r) => sum + r.target_cents, 0);
+    const totalReserveCurrent = reserves.reduce((sum, r) => sum + r.current_cents, 0);
+    const reserveNeeded = totalReserveTarget - totalReserveCurrent;
+    
+    let suggestedReserveCents = 0;
+    if (reserveNeeded > 0) {
+      suggestedReserveCents = Math.min(reserveNeeded, expectedIncomeCents * 0.1); 
+    }
+
+    // 4. Debt Reporting Metrics
+    let totalDebtRemainingCents = 0;
+    let monthlyDebtCommitmentCents = 0;
+    let overdueDebtInstallmentsCents = 0;
+    
+    const currentMonth = today.substring(0, 7); // YYYY-MM
+
+    debtInstallments.forEach(inst => {
+      const remaining = DebtService.remainingCents(inst);
+      if (remaining > 0) {
+        totalDebtRemainingCents += remaining;
+        
+        if (DebtService.isOverdue(inst, today)) {
+          overdueDebtInstallmentsCents += remaining;
+        }
+        
+        if (inst.due_date.startsWith(currentMonth)) {
+          monthlyDebtCommitmentCents += inst.amount_cents;
+        }
+      }
+    });
+
+    // 5. Balance Calculations
+    const projectedBalanceCents = currentBalanceCents + pendingIncomesCents - pendingExpensesCents;
+    const freeMoneyCents = expectedIncomeCents - totalExpensesCents - suggestedReserveCents;
+    const availableForInvestmentCents = freeMoneyCents > 0 ? freeMoneyCents * 0.5 : 0; 
+    const isTight = freeMoneyCents < 0;
+
+    // 6. NextAction logic (Priorities)
+    let nextAction: NextAction | null = null;
+
+    // Priority 1: Critical Overdue Bills
+    const criticalOverdue = accounts.filter(
+      a => (a.status === 'pending' || a.status === 'partial' as any) && (a.type as string) !== 'income' && AccountService.isAccountOverdue(a)
+    ).sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+    if (criticalOverdue.length > 0) {
+      nextAction = {
+        type: 'pay',
+        title: 'Conta Atrasada',
+        description: `Pagar "${criticalOverdue[0].title}" • Venceu em ${criticalOverdue[0].due_date.split('-').reverse().join('/')}`,
+        amountCents: criticalOverdue[0].amount_cents,
+        entityId: criticalOverdue[0].id,
+        priority: 'critical'
+      };
+    }
+
+    // Priority 2: Receive pending income expected by today or earlier
+    if (!nextAction) {
+      const pendingIncomeToday = incomes.filter(
+        i => i.status === 'pending' && i.expected_date <= today
+      ).sort((a, b) => a.expected_date.localeCompare(b.expected_date));
+
+      if (pendingIncomeToday.length > 0) {
+        nextAction = {
+          type: 'receive',
+          title: 'Confirmar Recebimento',
+          description: `Você já recebeu "${pendingIncomeToday[0].title}"? • Esperado em ${pendingIncomeToday[0].expected_date.split('-').reverse().join('/')}`,
+          amountCents: pendingIncomeToday[0].amount_cents,
+          entityId: pendingIncomeToday[0].id,
+          priority: 'high'
+        };
+      }
+    }
+
+    // Priority 3: Pay bill due today
+    if (!nextAction) {
+      const dueToday = accounts.filter(
+        a => (a.status === 'pending' || a.status === 'partial' as any) && (a.type as string) !== 'income' && a.due_date === today
+      );
+
+      if (dueToday.length > 0) {
+        nextAction = {
+          type: 'pay',
+          title: 'Vence Hoje',
+          description: `Pagar "${dueToday[0].title}" • Vence hoje`,
+          amountCents: dueToday[0].amount_cents,
+          entityId: dueToday[0].id,
+          priority: 'high'
+        };
+      }
+    }
+
+    // Priority 4: Reserve Emergency Aporte
+    if (!nextAction && suggestedReserveCents > 0 && currentBalanceCents >= suggestedReserveCents) {
+      nextAction = {
+        type: 'reserve',
+        title: 'Proteger seu Futuro',
+        description: `Separar R$ ${formatBRLFromCents(suggestedReserveCents).replace('R$ ', '')} para sua reserva de emergência`,
+        amountCents: suggestedReserveCents,
+        priority: 'medium'
+      };
+    }
+
+    // Priority 5: Invest Tip
+    if (!nextAction && availableForInvestmentCents > 0) {
+      nextAction = {
+        type: 'invest',
+        title: 'Dinheiro Livre para Investir',
+        description: `Considere planejar o aporte de R$ ${formatBRLFromCents(availableForInvestmentCents).replace('R$ ', '')} este mês`,
+        amountCents: availableForInvestmentCents,
+        priority: 'low'
+      };
+    }
+
+    return {
+      currentBalanceCents,
+      projectedBalanceCents,
+      expectedIncomeCents,
+      receivedIncomeCents,
+      totalExpensesCents,
+      paidExpensesCents,
+      overdueExpensesCents,
+      suggestedReserveCents,
+      freeMoneyCents,
+      availableForInvestmentCents,
+      isTight,
+      nextAction,
+      overdueCount,
+      // Phase 2
+      totalDebtRemainingCents,
+      monthlyDebtCommitmentCents,
+      overdueDebtInstallmentsCents
+    };
+  }
+
+  static calculateScore(summary: FinancialSummary): number {
+    let score = 100;
+    
+    // Penalties
+    if (summary.overdueCount > 0) score -= (summary.overdueCount * 15);
+    if (summary.isTight) score -= 20;
+    
+    return Math.max(0, Math.min(100, score));
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\hooks\useBalance.ts
+============================================================
+
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+
+export function useBalance() {
+  // Get wallet balance (SALDO ATUAL)
+  // This is the absolute truth of money physically available based on ATOMIC transactions.
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []);
+  const currentBalanceCents = wallets && wallets.length > 0 ? wallets[0].balance_cents : 390000; // Initialize visually for MVP
+
+  // Get pending expenses (CONTAS PENDENTES)
+  const pendingAccounts = useLiveQuery(() => 
+    db.accounts
+      .filter(a => a.status === 'pending' && (a.type as string) !== 'income')
+      .toArray(), 
+  []);
+  
+  // Get pending incomes (RECEITAS PENDENTES)
+  const pendingIncomes = useLiveQuery(() => 
+    db.income
+      .filter(i => i.status === 'pending')
+      .toArray(), 
+  []);
+  
+  if (!pendingAccounts || !pendingIncomes) {
+    return { currentBalanceCents, projectedBalanceCents: currentBalanceCents, pendingExpensesCents: 0, pendingIncomesCents: 0 };
+  }
+
+  let pendingExpensesCents = 0;
+  pendingAccounts.forEach(acc => {
+    pendingExpensesCents += acc.amount_cents;
+  });
+
+  let pendingIncomesCents = 0;
+  pendingIncomes.forEach(inc => {
+    pendingIncomesCents += inc.amount_cents;
+  });
+
+  // SALDO PROJETADO = Saldo Atual + Receitas Pendentes - Contas Pendentes
+  const projectedBalanceCents = currentBalanceCents + pendingIncomesCents - pendingExpensesCents;
+
+  return {
+    currentBalanceCents,
+    projectedBalanceCents,
+    pendingExpensesCents,
+    pendingIncomesCents
+  };
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\hooks\useFinancialSummary.ts
+============================================================
+
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { FinancialEngine } from '../services/FinancialEngine';
+import type { FinancialSummary } from '../types';
+
+export function useFinancialSummary(): FinancialSummary {
+  // Query all necessary tables dynamically and reactively via Dexie useLiveQuery
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
+  const incomes = useLiveQuery(() => db.income.toArray(), []) || [];
+  const reserves = useLiveQuery(() => db.reserves.toArray(), []) || [];
+  const debtInstallments = useLiveQuery(() => db.debt_installments.toArray(), []) || [];
+
+  // Rigorous Wallet balance logic
+  const currentBalanceCents = wallets.length > 0 ? wallets[0].balance_cents : 390000; // visual initial MVP balance
+
+  // Calculate the single immutable summary source of truth
+  return FinancialEngine.calculateSummary(accounts, incomes, reserves, currentBalanceCents, debtInstallments);
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\utils\currency.ts
+============================================================
+
+export function formatBRLFromCents(cents: number): string {
+  if (isNaN(cents)) cents = 0;
+  
+  const value = cents / 100;
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+
+  // Normalize non-breaking spaces to regular spaces for consistency
+  return formatted.replace(/\u00A0/g, ' ');
+}
+
+export function parseBRLToCents(value: string | number): number {
+  if (typeof value === 'number') {
+    return Math.round(value); // If it's already a number, assume it's cents and round it safely
+  }
+  
+  if (!value) return 0;
+
+  const isNegative = value.includes('-');
+  const numericString = value.replace(/[^\d]/g, '');
+  
+  if (!numericString) return 0;
+  
+  const parsed = parseInt(numericString, 10);
+  return isNegative ? -parsed : parsed;
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\utils\date.ts
+============================================================
+
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
+
+export function getTodayISO(): string {
+  return format(new Date(), 'yyyy-MM-dd');
+}
+
+export function isOverdue(dueDateISO: string): boolean {
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(parseISO(dueDateISO));
+  return isBefore(dueDate, today);
+}
+

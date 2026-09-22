@@ -1,7 +1,6 @@
 import { formatBRLFromCents } from '../utils/currency';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
-import { useState } from 'react';
 import { X, BellOff, CheckCheck } from 'lucide-react';
 import { AccountRepository } from '../repository/AccountRepository';
 import { IncomeRepository } from '../repository/IncomeRepository';
@@ -9,7 +8,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Account, Income } from '../types';
 import { AccountService } from '../services/AccountService';
-import { useToast } from './ui/ToastContext';
 
 type NotifEntry =
   | { kind: 'account'; data: Account }
@@ -20,10 +18,6 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
   const incomes = useLiveQuery(() => db.income.toArray(), []) || [];
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
-  const { showToast } = useToast();
-
-  const [loadingBillIds, setLoadingBillIds] = useState<Set<string>>(new Set());
-  const [loadingIncomeIds, setLoadingIncomeIds] = useState<Set<string>>(new Set());
 
   // Build notifications list
   const notifications: NotifEntry[] = [];
@@ -49,37 +43,11 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
     .forEach(inc => notifications.push({ kind: 'income', data: inc }));
 
   const handlePayBill = async (id: string) => {
-    if (loadingBillIds.has(id)) return;
-    setLoadingBillIds(prev => new Set(prev).add(id));
-    try {
-      await AccountRepository.markAsPaid(id);
-      showToast('Conta paga com sucesso!', 'success');
-    } catch {
-      showToast('Erro ao pagar a conta. Tente novamente.', 'error');
-    } finally {
-      setLoadingBillIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }
+    await AccountRepository.markAsPaid(id);
   };
 
   const handleReceiveIncome = async (id: string) => {
-    if (loadingIncomeIds.has(id)) return;
-    setLoadingIncomeIds(prev => new Set(prev).add(id));
-    try {
-      await IncomeRepository.markAsReceived(id);
-      showToast('Receita recebida com sucesso!', 'success');
-    } catch {
-      showToast('Erro ao registrar a receita. Tente novamente.', 'error');
-    } finally {
-      setLoadingIncomeIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }
+    await IncomeRepository.markAsReceived(id);
   };
 
   const getAccountLabel = (a: Account) => {
@@ -141,10 +109,9 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
                           <p className="text-xs text-gray-400 mt-0.5">Vence {dueDateLabel} · <span className="font-bold text-gray-700">{fmtAmt}</span></p>
                           <button
                             onClick={() => handlePayBill(a.id!)}
-                            disabled={a.id != null && loadingBillIds.has(a.id!)}
-                            className="mt-3 w-full bg-red-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-red-700 active:scale-[.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="mt-3 w-full bg-red-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-red-700 active:scale-[.98] transition"
                           >
-                            {a.id != null && loadingBillIds.has(a.id!) ? 'Pagando…' : '✓ PAGAR AGORA'}
+                            ✓ PAGAR AGORA
                           </button>
                         </div>
                       </div>
@@ -168,10 +135,9 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
                           <p className="text-xs text-gray-400 mt-0.5">{expectedLabel} · <span className="font-bold text-gray-700">{fmtAmt}</span></p>
                           <button
                             onClick={() => handleReceiveIncome(inc.id!)}
-                            disabled={inc.id != null && loadingIncomeIds.has(inc.id!)}
-                            className="mt-3 w-full bg-green-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-green-700 active:scale-[.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="mt-3 w-full bg-green-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-green-700 active:scale-[.98] transition"
                           >
-                            {inc.id != null && loadingIncomeIds.has(inc.id!) ? 'Recebendo…' : '✓ RECEBI ESTE VALOR'}
+                            ✓ RECEBI ESTE VALOR
                           </button>
                         </div>
                       </div>

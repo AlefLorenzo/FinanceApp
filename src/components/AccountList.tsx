@@ -7,6 +7,7 @@ import { AccountService } from '../services/AccountService';
 import { IncomeRepository } from '../repository/IncomeRepository';
 import type { Account, Income } from '../types';
 import { formatBRLFromCents } from '../utils/currency';
+import { useToast } from './ui/ToastContext';
 
 interface AccountListProps {
   limit?: number;
@@ -20,6 +21,7 @@ export function AccountList({
   type = 'expense'
 }: AccountListProps) {
   const { accounts, togglePaid, deleteAccount } = useAccounts();
+  const { showToast } = useToast();
 
   const incomes = useLiveQuery(
     () => db.income.toArray(),
@@ -103,10 +105,12 @@ export function AccountList({
     try {
       await togglePaid(account.id, wasPaid);
       if (!wasPaid) {
-        alert('Conta paga com sucesso!');
+        showToast('Conta paga com sucesso!', 'success');
+      } else {
+        showToast('Pagamento desfeito.', 'info');
       }
     } catch {
-      alert('Erro ao pagar a conta. Tente novamente.');
+      showToast('Erro ao atualizar a conta. Tente novamente.', 'error');
     } finally {
       setLoadingExpenseIds(prev => {
         const next = new Set(prev);

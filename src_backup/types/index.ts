@@ -64,9 +64,7 @@ export type TransactionType =
   | 'debt_paid'
   | 'debt_settlement'
   | 'reserve_contribution'
-  | 'manual_adjustment'
-  | 'expense_refund'
-  | 'income_refund';
+  | 'manual_adjustment';
 
 export interface AppTransaction {
   id: string;
@@ -172,14 +170,6 @@ export interface AppNotification {
   read: boolean;
   reference_id?: string;
   created_at: Date;
-}
-
-export interface SentNotificationLog {
-  id: string; // referenceId_notificationType_date
-  reference_id: string; // accountId or incomeId
-  notification_type: 'due_tomorrow' | 'due_today' | 'income_tomorrow' | 'income_today';
-  reference_date: string; // YYYY-MM-DD
-  sent_at: Date;
 }
 
 export interface AppSettings {

@@ -1,0 +1,3391 @@
+﻿============================================================
+FINANCE APP - AUDITORIA DO NUCLEO FINANCEIRO
+Data: 2026-08-28 08:36:02
+============================================================
+============================================================
+ARQUIVO: C:\finance\src\App.tsx
+============================================================
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from './data/db';
+
+import { Sidebar } from './components/Sidebar';
+import { TopHeader } from './components/TopHeader';
+import { BottomNav } from './components/BottomNav';
+import { QuickAddMenu } from './components/QuickAddMenu';
+
+import { Dashboard } from './components/Dashboard';
+import { AccountForm } from './components/AccountForm';
+import { AccountList } from './components/AccountList';
+import { ReservesView } from './components/ReservesView';
+import { AgendaView } from './components/AgendaView';
+import { InvestmentsView } from './components/InvestmentsView';
+import { DebtsView } from './components/DebtsView';
+import { MonthlyPlanView } from './components/MonthlyPlanView';
+import { NotificationCenter } from './components/NotificationCenter';
+import { AndroidAppView } from './components/AndroidAppView';
+
+function App() {
+  const [activeTab, setActiveTab] = useState('home');
+  const [accountType, setAccountType] = useState<'expense' | 'income'>('expense');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  const unreadNotificationsCount = useLiveQuery(
+    () => db.notifications.filter(n => !n.read).count(),
+    []
+  ) || 0;
+
+  const handleQuickAddAction = (action: string) => {
+    if (action === 'expense') {
+      setAccountType('expense');
+      setActiveTab('accounts');
+    } else if (action === 'income') {
+      setAccountType('income');
+      setActiveTab('accounts');
+    } else if (action === 'debt') {
+      setActiveTab('debts');
+    } else if (action === 'reserve') {
+      setActiveTab('reserves');
+    } else if (action === 'invest') {
+      setActiveTab('invest');
+    } else if (action === 'event' || action === 'reminder') {
+      setActiveTab('agenda');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f2f4f7] text-gray-900 font-sans flex flex-col md:flex-row overflow-x-hidden">
+
+      <Sidebar
+        activeView={activeTab}
+        onViewChange={setActiveTab}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      <div className="flex-1 min-w-0">
+
+        <TopHeader
+          onMenuClick={() => setIsSidebarOpen(true)}
+          onNotificationClick={() => setIsNotificationOpen(true)}
+          notificationCount={unreadNotificationsCount}
+        />
+
+        <main className="w-full overflow-x-hidden pb-24 md:pb-8">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+
+            {activeTab === 'home' && (
+              <Dashboard onNavigate={setActiveTab} />
+            )}
+
+            {activeTab === 'accounts' && (
+              <section className="w-full max-w-5xl mx-auto">
+
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-3 sm:p-4 mb-6">
+                  <div className="grid grid-cols-2 gap-2">
+
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('expense')}
+                      className={`min-h-[56px] rounded-2xl font-black text-sm sm:text-base transition-all ${
+                        accountType === 'expense'
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      🔴 Despesas
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('income')}
+                      className={`min-h-[56px] rounded-2xl font-black text-sm sm:text-base transition-all ${
+                        accountType === 'income'
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      🟢 Receitas
+                    </button>
+
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+
+                  <AccountForm type={accountType} />
+
+                  <div className="flex items-center justify-between px-1">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-black text-gray-800">
+                        {accountType === 'expense'
+                          ? 'Minhas Despesas'
+                          : 'Minhas Receitas'}
+                      </h2>
+
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                        {accountType === 'expense'
+                          ? 'Contas que você precisa pagar'
+                          : 'Valores que você espera receber'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <AccountList type={accountType} />
+
+                </div>
+              </section>
+            )}
+
+            {activeTab === 'agenda' && <AgendaView />}
+            {activeTab === 'debts' && <DebtsView />}
+            {activeTab === 'reserves' && <ReservesView />}
+            {activeTab === 'invest' && <InvestmentsView />}
+            {activeTab === 'monthly_plan' && <MonthlyPlanView />}
+
+            {activeTab === 'android_app' && (
+              <AndroidAppView mode="download" />
+            )}
+
+            {activeTab === 'android_app_info' && (
+              <AndroidAppView mode="info" />
+            )}
+
+            {activeTab === 'goals' && (
+              <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                <h2 className="text-xl font-bold mb-4">Minhas Metas</h2>
+                <p className="text-gray-500 text-sm">
+                  Planejamento de objetivos de longo prazo.
+                </p>
+              </div>
+            )}
+
+            {activeTab === 'reports' && (
+              <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                <h2 className="text-xl font-bold mb-4">
+                  Relatórios Financeiros
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Módulo de análise gráfica de despesas.
+                </p>
+              </div>
+            )}
+
+            {activeTab === 'history' && (
+              <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                <h2 className="text-xl font-bold mb-4">
+                  Histórico de Transações
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Logs e extratos detalhados.
+                </p>
+              </div>
+            )}
+
+            {activeTab === 'backup' && (
+              <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                <h2 className="text-xl font-bold mb-4">
+                  Backup de Dados
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Importação e exportação de banco JSON.
+                </p>
+              </div>
+            )}
+
+          </div>
+        </main>
+      </div>
+
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onPlusClick={() => setIsQuickAddOpen(true)}
+      />
+
+      <QuickAddMenu
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        onSelectAction={handleQuickAddAction}
+      />
+
+      {isNotificationOpen && (
+        <NotificationCenter
+          onClose={() => setIsNotificationOpen(false)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+export default App;
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\DebtsView.tsx
+============================================================
+import { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { DebtService } from '../services/DebtService';
+import { DebtRepository } from '../repository/DebtRepository';
+import type { Debt, DebtInstallment } from '../types';
+import { format, parseISO } from 'date-fns';
+import { CreditCard, Plus, ChevronRight, AlertTriangle, ChevronLeft, Calendar } from 'lucide-react';
+import { getTodayISO } from '../utils/date';
+import { MoneyInput } from './ui/MoneyInput';
+import { formatBRLFromCents } from '../utils/currency';
+
+export function DebtsView() {
+  const [activeView, setActiveView] = useState<'list' | 'create' | 'detail'>('list');
+  const [selectedDebtId, setSelectedDebtId] = useState<string | null>(null);
+
+  const debts = useLiveQuery(() => db.debts.toArray(), []) || [];
+  const allInstallments = useLiveQuery(() => db.debt_installments.toArray(), []) || [];
+  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
+
+  const today = getTodayISO();
+
+  // ----- COMPUTED METRICS -----
+  const activeDebts = debts.filter(d => d.status === 'active');
+  const totalRemainingCents = useMemo(() => {
+    return activeDebts.reduce((sum, d) => {
+      const dInsts = allInstallments.filter(i => i.debt_id === d.id);
+      return sum + DebtService.calculateDebtRemaining(dInsts);
+    }, 0);
+  }, [activeDebts, allInstallments]);
+
+  const overdueCount = useMemo(() => {
+    return allInstallments.filter(i => DebtService.isOverdue(i, today)).length;
+  }, [allInstallments, today]);
+
+  // ----- RENDER -----
+  if (activeView === 'create') {
+    return <DebtCreateForm onBack={() => setActiveView('list')} categories={categories} />;
+  }
+
+  if (activeView === 'detail' && selectedDebtId) {
+    const debt = debts.find(d => d.id === selectedDebtId);
+    const insts = allInstallments.filter(i => i.debt_id === selectedDebtId).sort((a, b) => a.installment_number - b.installment_number);
+    if (debt) {
+      return <DebtDetail debt={debt} installments={insts} onBack={() => setActiveView('list')} />;
+    }
+  }
+
+  // LIST VIEW
+  return (
+    <div className="space-y-6 pb-24 animate-in fade-in duration-300">
+      <div className="bg-gradient-to-br from-indigo-900 to-indigo-800 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="w-5 h-5 text-indigo-300" />
+            <h2 className="text-sm font-black uppercase tracking-widest text-indigo-300">Minhas Dívidas</h2>
+          </div>
+          <p className="text-gray-400 text-sm mb-1">Total Restante</p>
+          <h1 className="text-4xl font-black mb-6">{formatBRLFromCents(totalRemainingCents)}</h1>
+          
+          <div className="flex gap-4">
+            <div className="bg-white/10 rounded-2xl p-4 flex-1 backdrop-blur-sm">
+              <p className="text-2xl font-black">{activeDebts.length}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-indigo-300 mt-1">Em Andamento</p>
+            </div>
+            <div className={`rounded-2xl p-4 flex-1 backdrop-blur-sm ${overdueCount > 0 ? 'bg-red-500/20 text-red-100' : 'bg-white/10'}`}>
+              <p className="text-2xl font-black">{overdueCount}</p>
+              <p className={`text-[10px] uppercase tracking-wider font-bold mt-1 ${overdueCount > 0 ? 'text-red-300' : 'text-indigo-300'}`}>Atrasadas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setActiveView('create')}
+        className="w-full bg-white text-indigo-600 font-black p-5 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+      >
+        <Plus className="w-5 h-5" />
+        NOVA DÍVIDA
+      </button>
+
+      <div className="space-y-4">
+        {activeDebts.length === 0 ? (
+          <p className="text-center text-gray-400 py-8">Nenhuma dívida cadastrada.</p>
+        ) : (
+          activeDebts.map(debt => {
+            const dInsts = allInstallments.filter(i => i.debt_id === debt.id);
+            const remaining = DebtService.calculateDebtRemaining(dInsts);
+            const paidCount = DebtService.countPaidInstallments(dInsts);
+            const isDebtOverdue = dInsts.some(i => DebtService.isOverdue(i, today));
+            const nextPending = dInsts.find(i => i.status !== 'paid');
+
+            return (
+              <div 
+                key={debt.id} 
+                onClick={() => { setSelectedDebtId(debt.id); setActiveView('detail'); }}
+                className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-95 transition-transform"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {isDebtOverdue ? <span className="text-xs">🔴</span> : <span className="text-xs">🟡</span>}
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${isDebtOverdue ? 'text-red-500' : 'text-yellow-600'}`}>
+                        {isDebtOverdue ? 'Atrasada' : 'Em Andamento'}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-900">{debt.title}</h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-gray-900">{formatBRLFromCents(remaining)}</p>
+                    <p className="text-xs text-gray-400">restantes</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+                  <span>{paidCount} de {debt.total_installments} parcelas pagas</span>
+                  {nextPending && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Próx: {format(parseISO(nextPending.due_date), 'dd/MM')}
+                    </span>
+                  )}
+                </div>
+
+                <button className="w-full py-3 bg-gray-50 text-indigo-600 font-bold rounded-xl text-sm flex items-center justify-center gap-1">
+                  VER DÍVIDA <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// DEBT DETAIL VIEW
+// -----------------------------------------------------------------------------
+
+function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: DebtInstallment[], onBack: () => void }) {
+  const [payModal, setPayModal] = useState<{ isOpen: boolean, inst: DebtInstallment | null }>({ isOpen: false, inst: null });
+  const [settleModal, setSettleModal] = useState(false);
+
+  const today = getTodayISO();
+  const paidCount = DebtService.countPaidInstallments(installments);
+  const remainingCents = DebtService.calculateDebtRemaining(installments);
+  const totalPaidCents = debt.original_amount_cents - remainingCents; // Approximation for UI
+  const progressPct = Math.round((paidCount / debt.total_installments) * 100);
+
+
+  const handleSettle = async () => {
+    await DebtRepository.settleDebt(debt.id, remainingCents);
+    setSettleModal(false);
+  };
+
+  return (
+    <div className="space-y-6 pb-24 animate-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center gap-3 mb-2">
+        <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm text-gray-600">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-lg font-black text-gray-900 uppercase truncate">{debt.title}</h2>
+      </div>
+
+      {/* Summary Card */}
+      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Original</p>
+            <p className="font-bold text-sm">{formatBRLFromCents(debt.original_amount_cents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Pago</p>
+            <p className="font-bold text-sm text-green-600">{formatBRLFromCents(totalPaidCents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Restante</p>
+            <p className="font-black text-sm text-gray-900">{formatBRLFromCents(remainingCents)}</p>
+          </div>
+        </div>
+
+        <div className="mb-2">
+          <div className="flex justify-between text-xs font-bold mb-1.5">
+            <span className="text-indigo-600">{progressPct}% pago</span>
+            <span className="text-gray-400">{debt.total_installments - paidCount} parcelas restantes</span>
+          </div>
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-500 rounded-full transition-all duration-700" style={{ width: `${progressPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Action: Settle */}
+      {debt.status === 'active' && (
+        <button 
+          onClick={() => setSettleModal(true)}
+          className="w-full bg-indigo-50 text-indigo-700 font-black p-4 rounded-2xl shadow-sm border border-indigo-100 active:scale-95 transition-transform"
+        >
+          QUITAR DÍVIDA
+        </button>
+      )}
+
+      {/* Installments List */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">Parcelas</h3>
+        <div className="space-y-3">
+          {installments.map(inst => {
+            const status = DebtService.getInstallmentStatus(inst, today);
+            const remaining = DebtService.remainingCents(inst);
+            
+            let statusColor = 'bg-white border-gray-100 text-gray-900';
+            let badge = '';
+            
+            if (status === 'paid') {
+              statusColor = 'bg-gray-50 border-gray-100 opacity-60';
+              badge = '✅ PAGA';
+            } else if (status === 'overdue') {
+              statusColor = 'bg-red-50 border-red-200';
+              badge = '🔴 ATRASADA';
+            } else if (status === 'partial') {
+              statusColor = 'bg-yellow-50 border-yellow-200';
+              badge = '🟡 PARCIAL';
+            }
+
+            return (
+              <div key={inst.id} className={`rounded-2xl p-4 border shadow-sm ${statusColor}`}>
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm">
+                        {format(parseISO(inst.due_date), 'dd/MM')}
+                      </span>
+                      {badge && <span className="text-[10px] font-black uppercase tracking-wider">{badge}</span>}
+                    </div>
+                    <p className="text-xs text-gray-500">Parcela {inst.installment_number}/{debt.total_installments}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black">{formatBRLFromCents(inst.amount_cents)}</p>
+                  </div>
+                </div>
+
+                {status === 'partial' && (
+                  <div className="bg-white/60 rounded-xl p-3 mb-3 text-xs flex justify-between border border-yellow-100">
+                    <div>
+                      <span className="text-gray-500 block mb-1">Pago:</span>
+                      <span className="font-bold text-green-600">{formatBRLFromCents(inst.paid_amount_cents)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-500 block mb-1">Restante:</span>
+                      <span className="font-bold text-gray-900">{formatBRLFromCents(remaining)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {status !== 'paid' && (
+                  <button 
+                    onClick={() => setPayModal({ isOpen: true, inst })}
+                    className="w-full mt-2 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
+                  >
+                    {status === 'partial' ? 'PAGAR RESTANTE' : 'PAGAR PARCELA'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Pay Modal */}
+      {payModal.isOpen && payModal.inst && (
+        <PayInstallmentModal 
+          inst={payModal.inst} 
+          onClose={() => setPayModal({ isOpen: false, inst: null })} 
+        />
+      )}
+
+      {/* Settle Modal */}
+      {settleModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+            <h3 className="text-lg font-black text-center mb-6">QUITAR DÍVIDA</h3>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between py-3 border-b border-gray-100">
+                <span className="text-gray-500">Saldo atual</span>
+                <span className="font-bold">{formatBRLFromCents(remainingCents)}</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-gray-100">
+                <span className="text-gray-500">Parcelas restantes</span>
+                <span className="font-bold">{debt.total_installments - paidCount}</span>
+              </div>
+              <div className="flex justify-between py-3 bg-gray-50 rounded-xl px-4">
+                <span className="text-gray-900 font-bold">Valor para quitação</span>
+                <span className="font-black text-indigo-600 text-lg">{formatBRLFromCents(remainingCents)}</span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-xs font-medium flex gap-3 mb-6">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-600" />
+              <p>⚠️ Essa ação registrará a quitação antecipada da dívida e debitará o valor do seu saldo atual.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setSettleModal(false)}
+                className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={handleSettle}
+                className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl"
+              >
+                QUITAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// PAY INSTALLMENT MODAL
+// -----------------------------------------------------------------------------
+
+function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose: () => void }) {
+  const remaining = DebtService.remainingCents(inst);
+  const [payAmountCents, setPayAmountCents] = useState(remaining);
+
+  const handlePay = async () => {
+    let amountCents = payAmountCents;
+    if (amountCents <= 0) return;
+    
+    // Cap visually to avoid confusion, though repo already caps it
+    if (amountCents > remaining) amountCents = remaining;
+
+    await DebtRepository.payInstallment(inst.id, amountCents);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+        <h3 className="text-lg font-black text-center mb-6">PAGAR PARCELA</h3>
+        
+        <div className="space-y-4 mb-6">
+          <div className="flex justify-between py-2">
+            <span className="text-gray-500">Valor da parcela</span>
+            <span className="font-bold">{formatBRLFromCents(inst.amount_cents)}</span>
+          </div>
+          {inst.paid_amount_cents > 0 && (
+            <div className="flex justify-between py-2 text-green-600">
+              <span>Já pago</span>
+              <span className="font-bold">{formatBRLFromCents(inst.paid_amount_cents)}</span>
+            </div>
+          )}
+          <div className="flex justify-between py-2 border-t border-gray-100 pt-3">
+            <span className="text-gray-900 font-bold">Restante</span>
+            <span className="font-black text-gray-900">{formatBRLFromCents(remaining)}</span>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">VALOR A PAGAR AGORA</label>
+          <MoneyInput
+            valueCents={payAmountCents}
+            onChangeCents={setPayAmountCents}
+            className="w-full text-center text-4xl font-black text-indigo-600 bg-gray-50 rounded-2xl py-4 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none"
+            autoFocus
+          />
+          <p className="text-center text-xs text-gray-400 mt-2">
+            Pode ser parcial. O saldo será atualizado na hora.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl">CANCELAR</button>
+          <button onClick={handlePay} className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl">REGISTRAR</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CREATE DEBT FORM
+// -----------------------------------------------------------------------------
+
+function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories: any[] }) {
+  const [title, setTitle] = useState('');
+  const [creditor, setCreditor] = useState('');
+  const [originalAmountCents, setOriginalAmountCents] = useState(0);
+  const [installments, setInstallments] = useState('12');
+  const [installmentAmountCents, setInstallmentAmountCents] = useState(0);
+  const [firstDate, setFirstDate] = useState(getTodayISO());
+  const [categoryId, setCategoryId] = useState('');
+
+  // Use the state if valid, otherwise fallback to the first available category, or 'default'
+  const effectiveCategoryId = categories.find(c => c.id === categoryId) 
+    ? categoryId 
+    : (categories[0]?.id || 'default');
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await DebtRepository.create({
+      title,
+      creditor,
+      category_id: effectiveCategoryId,
+      original_amount_cents: originalAmountCents,
+      total_installments: parseInt(installments, 10),
+      installment_amount_cents: installmentAmountCents,
+      first_due_date: firstDate
+    });
+    onBack();
+  };
+
+  return (
+    <div className="space-y-6 pb-24 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="flex items-center gap-3 mb-4">
+        <button type="button" onClick={onBack} className="p-2 bg-white rounded-full shadow-sm text-gray-600">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-lg font-black text-gray-900 uppercase">NOVA DÍVIDA</h2>
+      </div>
+
+      <form onSubmit={handleCreate} className="space-y-5">
+        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">TÍTULO</label>
+            <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Empréstimo Banco" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CREDOR (BANCO/INSTITUIÇÃO)</label>
+            <input required value={creditor} onChange={e => setCreditor(e.target.value)} placeholder="Ex: Nubank" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CATEGORIA</label>
+            <select required value={effectiveCategoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none">
+              {categories.length === 0 && <option value="default">Geral</option>}
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR ORIGINAL TOTAL</label>
+            <MoneyInput
+              required
+              valueCents={originalAmountCents}
+              onChangeCents={setOriginalAmountCents}
+              className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Nº PARCELAS</label>
+              <input required type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR PARCELA</label>
+              <MoneyInput
+                required
+                valueCents={installmentAmountCents}
+                onChangeCents={setInstallmentAmountCents}
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">1º VENCIMENTO</label>
+            <input required type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+
+        <button type="submit" className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-sm active:scale-95 transition-transform">
+          CRIAR DÍVIDA E GERAR PARCELAS
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\Dashboard.tsx
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import { useFinancialSummary } from '../hooks/useFinancialSummary';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { AccountService } from '../services/AccountService';
+import { AccountRepository } from '../repository/AccountRepository';
+import { IncomeRepository } from '../repository/IncomeRepository';
+import { FinancialEngine } from '../services/FinancialEngine';
+import { 
+  AlertTriangle, Target, TrendingUp, PartyPopper, CheckCircle, 
+  ArrowUpRight, ArrowDownRight, ChevronRight 
+} from 'lucide-react';
+import { format, addDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void }) {
+  const summary = useFinancialSummary();
+  const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
+  const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
+  const score = FinancialEngine.calculateScore(summary);
+  const isHidden = settings?.hide_values ?? false;
+
+  const fmt = (cents: number) =>
+    isHidden ? '••••••' : `${formatBRLFromCents(cents)}`;
+
+  const handleNextActionClick = async () => {
+    const action = summary.nextAction;
+    if (!action?.entityId) return;
+    if (action.type === 'receive') {
+      await IncomeRepository.markAsReceived(action.entityId);
+    } else if (action.type === 'pay') {
+      await AccountRepository.markAsPaid(action.entityId);
+    }
+  };
+
+  // Next 5 days of pending bills
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const in7days = format(addDays(new Date(), 7), 'yyyy-MM-dd');
+  const upcomingBills = accounts
+    .filter(a => (a.type as string) !== 'income' && a.status === 'pending' && a.due_date >= today && a.due_date <= in7days)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .slice(0, 5);
+
+  const getActionIcon = () => {
+    switch (summary.nextAction?.type) {
+      case 'pay': return <AlertTriangle className="w-8 h-8 text-red-400" />;
+      case 'receive': return <TrendingUp className="w-8 h-8 text-green-400" />;
+      case 'reserve': return <Target className="w-8 h-8 text-blue-400" />;
+      case 'invest': return <TrendingUp className="w-8 h-8 text-purple-400" />;
+      default: return <PartyPopper className="w-8 h-8 text-yellow-400" />;
+    }
+  };
+
+  const getActionBadgeColor = () => {
+    switch (summary.nextAction?.priority) {
+      case 'critical': return 'bg-red-600';
+      case 'high': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
+      default: return 'bg-blue-600';
+    }
+  };
+
+  const getActionLabel = () => {
+    switch (summary.nextAction?.type) {
+      case 'pay': return '✓ PAGAR';
+      case 'receive': return '✓ RECEBI';
+      case 'reserve': return '🛟 SEPARAR';
+      case 'invest': return '📈 VER PLANO';
+      default: return 'VER';
+    }
+  };
+
+  return (
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+      {/* 1. SALDO DISPONÍVEL - visible on desktop (TopHeader shows on mobile) */}
+      <div className="hidden md:block bg-gradient-to-br from-blue-700 to-blue-800 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <p className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Saldo disponível</p>
+          <h2 className="text-4xl font-black tracking-tight mb-3 amount-text">
+            <span className="text-lg text-blue-300 mr-1">R$</span>
+            {isHidden ? '••••••' : formatBRLFromCents(summary.currentBalanceCents).replace('R$ ', '')}
+          </h2>
+          <div className="flex gap-4 text-sm">
+            <div className="flex items-center gap-1 text-green-300">
+              <ArrowUpRight className="w-4 h-4" />
+              <span>{fmt(summary.receivedIncomeCents)}</span>
+              <span className="text-blue-300 text-xs">recebidos</span>
+            </div>
+            <div className="flex items-center gap-1 text-red-300">
+              <ArrowDownRight className="w-4 h-4" />
+              <span>{fmt(summary.paidExpensesCents)}</span>
+              <span className="text-blue-300 text-xs">pagos</span>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-blue-600/50 flex justify-between items-center">
+            <span className="text-blue-200 text-xs">Saldo projetado</span>
+            <span className="font-bold text-sm">{fmt(summary.projectedBalanceCents)}</span>
+          </div>
+        </div>
+        <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/5 rounded-full" />
+        <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/5 rounded-full" />
+      </div>
+
+      {/* 2. ATENÇÃO — Alerta de contas críticas */}
+      {(summary.overdueCount > 0 || summary.isTight) && (
+        <div className={`rounded-[2rem] p-5 border-l-4 ${summary.overdueCount > 0 ? 'bg-red-50 border-red-500' : 'bg-yellow-50 border-yellow-500'}`}>
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">{summary.overdueCount > 0 ? '🔴' : '⚠️'}</span>
+            <div className="min-w-0">
+              <h3 className={`font-black text-sm ${summary.overdueCount > 0 ? 'text-red-800' : 'text-yellow-800'}`}>
+                {summary.overdueCount > 0 ? `${summary.overdueCount} conta(s) atrasada(s)` : 'Orçamento Apertado'}
+              </h3>
+              <p className={`text-xs mt-0.5 ${summary.overdueCount > 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                {summary.overdueCount > 0 
+                  ? `Total: ${fmt(summary.overdueExpensesCents)}`
+                  : 'Suas contas superam a renda prevista neste mês.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. 🎯 PRÓXIMA MELHOR AÇÃO */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Próxima Ação</h3>
+        <div className="bg-gray-900 p-5 rounded-[2rem] shadow-xl relative overflow-hidden text-white">
+          <div className="flex items-start gap-4 relative z-10">
+            <div className="p-3 bg-gray-800 rounded-2xl shrink-0">
+              {getActionIcon()}
+            </div>
+            <div className="flex-1 min-w-0">
+              {summary.nextAction && (
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mb-2 inline-block ${getActionBadgeColor()}`}>
+                  {summary.nextAction.priority === 'critical' ? '🔴 URGENTE' : summary.nextAction.priority === 'high' ? '🟠 IMPORTANTE' : '🟡 SUGESTÃO'}
+                </span>
+              )}
+              <h4 className="text-base font-bold text-white mb-1">{summary.nextAction?.title ?? 'Tudo em Ordem!'}</h4>
+              <p className="text-gray-300 text-sm mb-4 leading-relaxed">{summary.nextAction?.description ?? 'Você está no controle das suas finanças.'}</p>
+              {summary.nextAction?.amountCents && (
+                <p className="text-xl font-black text-white mb-3">{fmt(summary.nextAction.amountCents)}</p>
+              )}
+              {summary.nextAction?.entityId && (
+                <button
+                  onClick={handleNextActionClick}
+                  className="bg-white text-gray-900 font-black py-3 px-6 rounded-xl text-sm hover:bg-gray-100 active:scale-[.97] transition w-full md:w-auto text-center"
+                >
+                  {getActionLabel()}
+                </button>
+              )}
+              {!summary.nextAction && (
+                <div className="flex items-center gap-2 text-green-400">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="text-sm font-bold">Nenhuma ação pendente</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+        </div>
+      </div>
+
+      {/* 4. RESUMO DO MÊS */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Resumo do Mês</h3>
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-5 space-y-3 text-sm">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="text-base">💰</span>
+              <span className="font-medium">Entradas</span>
+            </div>
+            <span className="font-black text-green-600">{fmt(summary.expectedIncomeCents)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="text-base">📋</span>
+              <span className="font-medium">Despesas</span>
+            </div>
+            <span className="font-black text-red-500">{fmt(summary.totalExpensesCents)}</span>
+          </div>
+          {summary.suggestedReserveCents > 0 && (
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2 text-gray-500">
+                <span className="text-base">🛟</span>
+                <span className="font-medium">Reserva sugerida</span>
+              </div>
+              <span className="font-black text-blue-500">{fmt(summary.suggestedReserveCents)}</span>
+            </div>
+          )}
+          <div className="pt-3 mt-1 border-t border-gray-100 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📊</span>
+              <span className="font-black text-gray-900">Saldo Projetado</span>
+            </div>
+            <span className={`font-black text-lg ${summary.projectedBalanceCents >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+              {fmt(summary.projectedBalanceCents)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-gray-400">
+              <span className="text-base">🏦</span>
+              <span className="font-medium">Dinheiro livre</span>
+            </div>
+            <span className={`font-black ${summary.freeMoneyCents >= 0 ? 'text-gray-700' : 'text-red-500'}`}>
+              {fmt(summary.freeMoneyCents)}
+            </span>
+          </div>
+
+          {/* Organization Score */}
+          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+            <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Organização</span>
+            <div className="flex items-baseline gap-1">
+              <span className={`text-2xl font-black ${score > 70 ? 'text-green-500' : score > 40 ? 'text-yellow-500' : 'text-red-500'}`}>{score}</span>
+              <span className="text-xs font-bold text-gray-300">/100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. PRÓXIMOS DIAS */}
+      {upcomingBills.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Próximos dias</h3>
+            <button 
+              onClick={() => onNavigate && onNavigate('accounts')}
+              className="flex items-center gap-1 text-xs font-bold text-blue-600"
+            >
+              Ver tudo <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {upcomingBills.map(bill => {
+              const isOverdue = AccountService.isAccountOverdue(bill);
+              const dateLabel = format(new Date(bill.due_date + 'T00:00:00'), "d MMM", { locale: ptBR });
+              return (
+                <div key={bill.id} className="flex items-center justify-between px-5 py-3.5 gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-base shrink-0">{isOverdue ? '🔴' : '🔵'}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-gray-900 truncate">{bill.title}</p>
+                      <p className="text-xs text-gray-400">{dateLabel}</p>
+                    </div>
+                  </div>
+                  <span className={`font-black text-sm shrink-0 ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
+                    {fmt(bill.amount_cents)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\AccountForm.tsx
+============================================================
+import React, { useState } from 'react';
+import { useAccounts } from '../hooks/useAccounts';
+import { IncomeRepository } from '../repository/IncomeRepository';
+import { getTodayISO } from '../utils/date';
+import { PlusCircle, X } from 'lucide-react';
+import { MoneyInput } from './ui/MoneyInput';
+
+type AccountType = 'expense' | 'income';
+
+interface AccountFormProps {
+  type?: AccountType;
+}
+
+export function AccountForm({ type = 'expense' }: AccountFormProps) {
+  const { addAccount } = useAccounts();
+
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [amountCents, setAmountCents] = useState(0);
+  const [dueDate, setDueDate] = useState(getTodayISO());
+
+  const resetForm = () => {
+    setTitle('');
+    setAmountCents(0);
+    setDueDate(getTodayISO());
+  };
+
+  const closeForm = () => {
+    setOpen(false);
+    resetForm();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim() || amountCents <= 0) return;
+
+    if (type === 'income') {
+      await IncomeRepository.create({
+        title: title.trim(),
+        amount_cents: amountCents,
+        expected_date: dueDate,
+        status: 'pending',
+        category_id: 'default',
+      });
+    } else {
+      await addAccount({
+        title: title.trim(),
+        amount_cents: amountCents,
+        due_date: dueDate,
+        type: 'expense',
+        status: 'pending',
+        category_id: 'default',
+      });
+    }
+
+    closeForm();
+  };
+
+  const isExpense = type === 'expense';
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`w-full min-h-[58px] flex items-center justify-center gap-2 px-4 py-4 text-white font-black rounded-2xl shadow-sm active:scale-[0.98] transition text-base ${
+          isExpense
+            ? 'bg-red-600 hover:bg-red-700'
+            : 'bg-green-600 hover:bg-green-700'
+        }`}
+      >
+        <PlusCircle className="w-5 h-5 shrink-0" />
+
+        <span>
+          {isExpense ? 'Nova Despesa' : 'Nova Receita'}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm overflow-y-auto"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeForm();
+          }}
+        >
+          <div className="min-h-full w-full flex items-center justify-center p-4">
+            <div
+              className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+
+              <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-gray-100">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-900">
+                    {isExpense ? 'Adicionar Despesa' : 'Adicionar Receita'}
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    {isExpense
+                      ? 'Cadastre uma conta que precisa pagar'
+                      : 'Cadastre um valor que espera receber'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleSubmit}
+                className="p-5 sm:p-6 space-y-5"
+              >
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    {isExpense ? 'Nome da despesa' : 'Nome da receita'}
+                  </label>
+
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                    placeholder={
+                      isExpense
+                        ? 'Ex.: Internet, Energia...'
+                        : 'Ex.: Salário, Freelance...'
+                    }
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Valor
+                    </label>
+
+                    <MoneyInput
+                      valueCents={amountCents}
+                      onChangeCents={setAmountCents}
+                      className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {isExpense ? 'Vencimento' : 'Data prevista'}
+                    </label>
+
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    className="min-h-[52px] rounded-xl border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className={`min-h-[52px] rounded-xl text-white font-bold transition ${
+                      isExpense
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {isExpense ? 'Salvar Despesa' : 'Salvar Receita'}
+                  </button>
+
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\AccountList.tsx
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import { useAccounts } from '../hooks/useAccounts';
+import { AccountService } from '../services/AccountService';
+import { getTodayISO } from '../utils/date';
+import { CheckCircle2, Circle } from 'lucide-react';
+import type { Account } from '../types';
+
+interface Props {
+  limit?: number;
+  hidePaid?: boolean;
+  type?: 'expense' | 'income';
+}
+
+export function AccountList({ limit, hidePaid, type }: Props) {
+  const { accounts, togglePaid } = useAccounts();
+  const today = getTodayISO();
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'text-red-700 bg-red-100 border-red-200';
+      case 'next':
+        return 'text-orange-700 bg-orange-100 border-orange-200';
+      case 'attention':
+        return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      default:
+        return 'text-blue-700 bg-blue-100 border-blue-200';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'Urgente';
+      case 'next':
+        return 'Próximo';
+      case 'attention':
+        return 'Atenção';
+      default:
+        return 'Futura';
+    }
+  };
+
+  const getSortScore = (account: Account) => {
+    if (account.status === 'paid') return 999;
+
+    if (AccountService.isAccountOverdue(account)) return 1;
+    if (account.due_date === today) return 2;
+
+    const priority = AccountService.calculatePriority(account);
+
+    if (priority === 'next') return 3;
+    if (priority === 'attention') return 4;
+
+    return 5;
+  };
+
+  let filteredAccounts = [...accounts];
+
+  if (type) {
+    filteredAccounts = filteredAccounts.filter(
+      account => account.type === type
+    );
+  }
+
+  if (hidePaid) {
+    filteredAccounts = filteredAccounts.filter(
+      account => account.status !== 'paid'
+    );
+  }
+
+  if (filteredAccounts.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-10 bg-white rounded-2xl border border-dashed border-gray-300">
+        {type === 'income'
+          ? 'Nenhuma receita cadastrada.'
+          : 'Nenhuma despesa cadastrada.'}
+      </div>
+    );
+  }
+
+  filteredAccounts.sort((a, b) => {
+    const scoreA = getSortScore(a);
+    const scoreB = getSortScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+
+    return a.due_date.localeCompare(b.due_date);
+  });
+
+  if (limit) {
+    filteredAccounts = filteredAccounts.slice(0, limit);
+  }
+
+  return (
+    <div className="space-y-3 w-full">
+      {filteredAccounts.map(account => {
+        const priority = AccountService.calculatePriority(account);
+        const isPaid = account.status === 'paid';
+        const isOverdue = AccountService.isAccountOverdue(account);
+        const isToday = account.due_date === today && !isPaid;
+
+        return (
+          <div
+            key={account.id}
+            className={`w-full p-4 rounded-2xl shadow-sm border-l-4 bg-white flex items-center justify-between transition-all gap-3 ${
+              isPaid
+                ? 'border-gray-200 opacity-60'
+                : (account.type as string) === 'income'
+                  ? 'border-green-500'
+                  : isOverdue
+                    ? 'border-red-600'
+                    : isToday
+                      ? 'border-yellow-500'
+                      : 'border-blue-500'
+            }`}
+          >
+            <div className="flex flex-col flex-1 min-w-0">
+              <h3
+                className={`font-bold text-base break-words whitespace-normal ${
+                  isPaid
+                    ? 'line-through text-gray-500'
+                    : 'text-gray-900'
+                }`}
+              >
+                {account.title}
+              </h3>
+
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-xs font-medium text-gray-500 shrink-0">
+                  {account.due_date.split('-').reverse().join('/')}
+                </span>
+
+                {!isPaid && (
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                      isOverdue
+                        ? 'text-red-700 bg-red-100 border-red-200'
+                        : isToday
+                          ? 'text-yellow-700 bg-yellow-100 border-yellow-200'
+                          : getPriorityColor(priority)
+                    }`}
+                  >
+                    {isOverdue
+                      ? 'Atrasada'
+                      : isToday
+                        ? 'Vence Hoje'
+                        : getPriorityLabel(priority)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+
+              <span
+                className={`font-bold text-sm sm:text-base tracking-tight amount-text text-right whitespace-nowrap ${
+                  isPaid
+                    ? 'text-gray-400'
+                    : account.type === 'expense'
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                }`}
+              >
+                {account.type === 'expense' ? '- ' : '+ '}
+                {formatBRLFromCents(account.amount_cents)}
+              </span>
+
+              <button
+                onClick={() => togglePaid(account.id, isPaid)}
+                className="p-1 rounded-full hover:bg-gray-100 transition focus:outline-none shrink-0"
+                aria-label={
+                  isPaid
+                    ? 'Marcar como pendente'
+                    : 'Marcar como pago'
+                }
+              >
+                {isPaid ? (
+                  <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-green-500" />
+                ) : (
+                  <Circle className="w-6 h-6 sm:w-7 sm:h-7 text-gray-300 hover:text-gray-400" />
+                )}
+              </button>
+
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\MonthlyPlanView.tsx
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import { useFinancialSummary } from '../hooks/useFinancialSummary';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { format, startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import type { Account, Income } from '../types';
+import { AccountService } from '../services/AccountService';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+function MonthProgressBar({ label, valueCents, totalCents, color }: {
+  label: string; valueCents: number; totalCents: number; color: string;
+}) {
+  const pct = totalCents > 0 ? Math.min(100, Math.round((valueCents / totalCents) * 100)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-sm font-bold text-gray-700">{label}</span>
+        <span className="text-sm font-black text-gray-900">
+          {formatBRLFromCents(valueCents)}
+        </span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1">{pct}% de R$ {formatBRLFromCents(totalCents).replace(",00", "").replace("R$ ", "")}</p>
+    </div>
+  );
+}
+
+export function MonthlyPlanView() {
+  const summary = useFinancialSummary();
+  const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
+  const incomes = useLiveQuery(() => db.income.toArray(), []) || [];
+  const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
+  const isHidden = settings?.hide_values ?? false;
+
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const monthLabel = format(now, 'MMMM yyyy', { locale: ptBR });
+  const dayOfMonth = getDate(now);
+  const daysTotal = getDaysInMonth(now);
+  const monthProgressPct = Math.round((dayOfMonth / daysTotal) * 100);
+
+  const fmt = (cents: number) =>
+    isHidden ? '••••' : `${formatBRLFromCents(cents)}`;
+
+  // Group pending expenses by week
+  const monthStart_iso = format(monthStart, 'yyyy-MM-dd');
+  const monthEnd_iso = format(monthEnd, 'yyyy-MM-dd');
+
+  const pendingExpenses = (accounts as Account[])
+    .filter(a => (a.type as string) !== 'income' && a.status === 'pending' && a.due_date >= monthStart_iso && a.due_date <= monthEnd_iso)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+  const pendingIncomes = (incomes as Income[])
+    .filter(inc => inc.status === 'pending' && inc.expected_date >= monthStart_iso && inc.expected_date <= monthEnd_iso)
+    .sort((a, b) => a.expected_date.localeCompare(b.expected_date));
+
+  // Budget health
+  const healthColor = summary.isTight
+    ? 'text-red-500'
+    : summary.projectedBalanceCents < summary.currentBalanceCents
+    ? 'text-yellow-500'
+    : 'text-green-500';
+
+  const HealthIcon = summary.isTight
+    ? TrendingDown
+    : summary.projectedBalanceCents > summary.currentBalanceCents
+    ? TrendingUp
+    : Minus;
+
+  return (
+    <div className="space-y-5 animate-in fade-in duration-300">
+
+      {/* Month Header */}
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Meu Mês</p>
+          <h2 className="text-xl font-black capitalize mb-4">{monthLabel}</h2>
+
+          {/* Month progress bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+              <span>Dia {dayOfMonth}</span>
+              <span>{daysTotal - dayOfMonth} dias restantes</span>
+            </div>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-400 rounded-full transition-all duration-700"
+                style={{ width: `${monthProgressPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{monthProgressPct}% do mês concluído</p>
+          </div>
+
+          {/* Health indicator */}
+          <div className={`flex items-center gap-2 ${healthColor}`}>
+            <HealthIcon className="w-5 h-5" />
+            <span className="text-sm font-bold">
+              {summary.isTight
+                ? 'Orçamento apertado — atenção necessária'
+                : summary.projectedBalanceCents > summary.currentBalanceCents
+                ? 'Mês saudável — você vai fechar no azul'
+                : 'Mês equilibrado'}
+            </span>
+          </div>
+        </div>
+        <div className="absolute -top-8 -right-8 w-36 h-36 bg-white/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Fluxo do mês */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Fluxo do Mês</h3>
+        <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 space-y-5">
+          <MonthProgressBar
+            label="💰 Receitas Recebidas"
+            valueCents={summary.receivedIncomeCents}
+            totalCents={summary.expectedIncomeCents}
+            color="bg-green-500"
+          />
+          <MonthProgressBar
+            label="📋 Contas Pagas"
+            valueCents={summary.paidExpensesCents}
+            totalCents={summary.totalExpensesCents}
+            color="bg-blue-500"
+          />
+          {summary.overdueExpensesCents > 0 && (
+            <div className="bg-red-50 rounded-2xl p-4 border border-red-100">
+              <p className="text-red-700 font-bold text-sm">
+                🔴 {summary.overdueCount} conta(s) atrasada(s): {fmt(summary.overdueExpensesCents)}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Projeção de fechamento */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Projeção de Fechamento</h3>
+        <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Saldo atual</span>
+            <span className="font-black text-gray-900">{fmt(summary.currentBalanceCents)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">+ Receitas pendentes</span>
+            <span className="font-black text-green-600">
+              {fmt(summary.expectedIncomeCents - summary.receivedIncomeCents)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">− Contas pendentes</span>
+            <span className="font-black text-red-500">
+              {fmt(summary.totalExpensesCents - summary.paidExpensesCents)}
+            </span>
+          </div>
+          {summary.suggestedReserveCents > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">− Reserva sugerida</span>
+              <span className="font-black text-blue-500">{fmt(summary.suggestedReserveCents)}</span>
+            </div>
+          )}
+          <div className="pt-3 border-t border-gray-100 flex justify-between">
+            <span className="font-black text-gray-900">Saldo projetado</span>
+            <span className={`font-black text-lg ${summary.projectedBalanceCents >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+              {fmt(summary.projectedBalanceCents)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400 text-sm">Dinheiro livre</span>
+            <span className={`font-black text-sm ${summary.freeMoneyCents >= 0 ? 'text-gray-700' : 'text-red-500'}`}>
+              {fmt(summary.freeMoneyCents)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Próximas contas do mês */}
+      {pendingExpenses.length > 0 && (
+        <div>
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">
+            Contas Pendentes ({pendingExpenses.length})
+          </h3>
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {pendingExpenses.map(bill => {
+              const isOverdue = AccountService.isAccountOverdue(bill);
+              return (
+                <div key={bill.id} className="flex items-center justify-between px-5 py-3.5 gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-base shrink-0">{isOverdue ? '🔴' : '🔵'}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-gray-900 truncate">{bill.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {isOverdue ? '⚠️ Atrasada' : format(new Date(bill.due_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`font-black text-sm shrink-0 ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
+                    {isHidden ? '••••' : `${formatBRLFromCents(bill.amount_cents)}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Receitas do mês */}
+      {pendingIncomes.length > 0 && (
+        <div>
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">
+            Receitas Esperadas ({pendingIncomes.length})
+          </h3>
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {pendingIncomes.map(inc => (
+              <div key={inc.id} className="flex items-center justify-between px-5 py-3.5 gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-base shrink-0">💰</span>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-gray-900 truncate">{inc.title}</p>
+                    <p className="text-xs text-gray-400">
+                      {format(new Date(inc.expected_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+                <span className="font-black text-sm text-green-600 shrink-0">
+                  {isHidden ? '••••' : `${formatBRLFromCents(inc.amount_cents)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\IncomeView.tsx
+============================================================
+[ARQUIVO NAO ENCONTRADO]
+
+============================================================
+ARQUIVO: C:\finance\src\components\QuickAddMenu.tsx
+============================================================
+import { 
+  ClipboardList, TrendingUp, CreditCard, LifeBuoy, BarChart3, Calendar, CheckSquare, Target, X
+} from 'lucide-react';
+
+type QuickAddMenuProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectAction: (action: string) => void;
+};
+
+export function QuickAddMenu({ isOpen, onClose, onSelectAction }: QuickAddMenuProps) {
+  if (!isOpen) return null;
+
+  const actions = [
+    { id: 'expense', label: 'Conta', icon: ClipboardList, color: 'bg-red-50 text-red-500' },
+    { id: 'income', label: 'Receita', icon: TrendingUp, color: 'bg-green-50 text-green-500' },
+    { id: 'debt', label: 'Dívida', icon: CreditCard, color: 'bg-purple-50 text-purple-500' },
+    { id: 'reserve', label: 'Reserva', icon: LifeBuoy, color: 'bg-blue-50 text-blue-500' },
+    { id: 'invest', label: 'Investimento', icon: BarChart3, color: 'bg-indigo-50 text-indigo-500' },
+    { id: 'event', label: 'Compromisso', icon: Calendar, color: 'bg-orange-50 text-orange-500' },
+    { id: 'reminder', label: 'Lembrete', icon: CheckSquare, color: 'bg-teal-50 text-teal-500' },
+    { id: 'goal', label: 'Meta', icon: Target, color: 'bg-pink-50 text-pink-500' },
+  ];
+
+  const handleSelect = (id: string) => {
+    onSelectAction(id);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center select-none">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+
+      {/* Bottom Sheet Drawer */}
+      <div className="relative w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-10 shadow-2xl z-10 animate-in slide-in-from-bottom duration-300">
+        {/* Drag indicator */}
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+        </div>
+
+        {/* Title */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-black text-gray-900">O que deseja adicionar?</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-full transition">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Grid Action List */}
+        <div className="grid grid-cols-4 gap-4">
+          {actions.map(act => {
+            const Icon = act.icon;
+            return (
+              <button
+                key={act.id}
+                onClick={() => handleSelect(act.id)}
+                className="flex flex-col items-center gap-2 p-2 hover:bg-gray-50 rounded-2xl active:scale-[.95] transition-all"
+              >
+                <div className={`w-12 h-12 rounded-2xl ${act.color} flex items-center justify-center shadow-sm`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-bold text-gray-600 text-center leading-tight truncate w-full">
+                  {act.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\TopHeader.tsx
+============================================================
+import { Eye, EyeOff, Menu, Bell } from 'lucide-react';
+import { useFinancialSummary } from '../hooks/useFinancialSummary';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+
+interface Props {
+  onMenuClick: () => void;
+  onNotificationClick: () => void;
+  notificationCount: number;
+}
+
+export function TopHeader({ onMenuClick, onNotificationClick, notificationCount }: Props) {
+  const summary = useFinancialSummary();
+  const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
+
+  const handleTogglePrivacy = async () => {
+    if (settings) {
+      await db.settings.update(settings.id, { hide_values: !settings.hide_values });
+    } else {
+      await db.settings.add({
+        id: 'default',
+        hide_values: true,
+        theme: 'light',
+        minimum_reserve_cents: 0,
+        salary_cents: 0,
+        salary_day: 5,
+        created_at: new Date()
+      });
+    }
+  };
+
+  const isHidden = settings?.hide_values ?? false;
+
+  const formatted = isHidden
+    ? '••••••'
+    : (summary.currentBalanceCents / 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+  return (
+    <header className="bg-blue-600 text-white sticky top-0 z-30 shadow-md md:hidden select-none"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="flex justify-between items-center px-4 py-3 max-w-md mx-auto w-full">
+        {/* Left: Hamburger menu */}
+        <button
+          onClick={onMenuClick}
+          className="w-10 h-10 flex items-center justify-center hover:bg-blue-700 rounded-full transition focus:outline-none shrink-0"
+          aria-label="Abrir Menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
+        {/* Center: Title / Balance info */}
+        <div className="flex flex-col items-center min-w-0">
+          <div className="text-[10px] text-blue-200 uppercase font-black tracking-widest leading-none mb-1">
+            Saldo disponível
+          </div>
+          <div className="text-xl font-black tracking-tight leading-none truncate max-w-[150px] flex items-baseline gap-0.5">
+            <span className="text-xs font-normal opacity-85">R$</span> {formatted}
+          </div>
+        </div>
+
+        {/* Right: Actions (Privacy + Notifications) */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Privacy Eye Toggle */}
+          <button
+            onClick={handleTogglePrivacy}
+            className="w-10 h-10 flex items-center justify-center hover:bg-blue-700 rounded-full transition focus:outline-none"
+            aria-label={isHidden ? 'Mostrar valores' : 'Ocultar valores'}
+          >
+            {isHidden ? <EyeOff className="w-5 h-5 text-blue-100" /> : <Eye className="w-5 h-5 text-blue-100" />}
+          </button>
+
+          {/* Notifications Bell */}
+          <button
+            onClick={onNotificationClick}
+            className="w-10 h-10 flex items-center justify-center hover:bg-blue-700 rounded-full transition focus:outline-none relative"
+            aria-label="Ver Notificações"
+          >
+            <Bell className="w-5 h-5 text-blue-100" />
+            {notificationCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-red-500 text-[10px] font-black text-white w-4 h-4 rounded-full flex items-center justify-center border-2 border-blue-600 animate-pulse">
+                {notificationCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\NotificationCenter.tsx
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { X, BellOff, CheckCheck } from 'lucide-react';
+import { AccountRepository } from '../repository/AccountRepository';
+import { IncomeRepository } from '../repository/IncomeRepository';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import type { Account, Income } from '../types';
+import { AccountService } from '../services/AccountService';
+
+type NotifEntry =
+  | { kind: 'account'; data: Account }
+  | { kind: 'income'; data: Income };
+
+export function NotificationCenter({ onClose }: { onClose: () => void }) {
+  const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
+  const incomes = useLiveQuery(() => db.income.toArray(), []) || [];
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
+
+  // Build notifications list
+  const notifications: NotifEntry[] = [];
+
+  // 1. Overdue bills (highest priority)
+  accounts
+    .filter(a => (a.type as string) !== 'income' && a.status === 'pending' && AccountService.isAccountOverdue(a))
+    .forEach(a => notifications.push({ kind: 'account', data: a }));
+
+  // 2. Bills due today
+  accounts
+    .filter(a => (a.type as string) !== 'income' && a.status === 'pending' && a.due_date === today && !AccountService.isAccountOverdue(a))
+    .forEach(a => notifications.push({ kind: 'account', data: a }));
+
+  // 3. Bills due tomorrow
+  accounts
+    .filter(a => (a.type as string) !== 'income' && a.status === 'pending' && a.due_date === tomorrow)
+    .forEach(a => notifications.push({ kind: 'account', data: a }));
+
+  // 4. Pending income due today / past-due
+  incomes
+    .filter(inc => inc.status === 'pending' && inc.expected_date <= today)
+    .forEach(inc => notifications.push({ kind: 'income', data: inc }));
+
+  const handlePayBill = async (id: string) => {
+    await AccountRepository.markAsPaid(id);
+  };
+
+  const handleReceiveIncome = async (id: string) => {
+    await IncomeRepository.markAsReceived(id);
+  };
+
+  const getAccountLabel = (a: Account) => {
+    const isOverdue = AccountService.isAccountOverdue(a);
+    if (isOverdue) return { icon: '🔴', badge: 'ATRASADA', badgeColor: 'bg-red-100 text-red-700' };
+    if (a.due_date === today) return { icon: '🟡', badge: 'HOJE', badgeColor: 'bg-yellow-100 text-yellow-700' };
+    return { icon: '🔵', badge: 'AMANHÃ', badgeColor: 'bg-blue-100 text-blue-700' };
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
+      <div
+        className="bg-white w-full max-w-sm h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <div>
+            <h2 className="text-base font-black text-gray-900">Notificações</h2>
+            {notifications.length > 0 && (
+              <p className="text-xs text-gray-400">{notifications.length} pendente{notifications.length > 1 ? 's' : ''}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <BellOff className="w-12 h-12 text-gray-200 mb-3" />
+              <p className="text-gray-400 font-bold text-sm">Nenhuma notificação</p>
+              <p className="text-gray-300 text-xs mt-1">Suas finanças estão em dia! 🎉</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {notifications.map((notif, i) => {
+                if (notif.kind === 'account') {
+                  const a = notif.data;
+                  const { icon, badge, badgeColor } = getAccountLabel(a);
+                  const fmtAmt = `${formatBRLFromCents(a.amount_cents)}`;
+                  const dueDateLabel = format(new Date(a.due_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR });
+                  return (
+                    <div key={`acc-${a.id}-${i}`} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl shrink-0 mt-0.5">{icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${badgeColor}`}>{badge}</span>
+                            {a.debtId && (
+                               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                                 💳 Parcela {a.installment_current}/{a.installment_total}
+                               </span>
+                            )}
+                          </div>
+                          <p className="font-bold text-sm text-gray-900 truncate">{a.title}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Vence {dueDateLabel} · <span className="font-bold text-gray-700">{fmtAmt}</span></p>
+                          <button
+                            onClick={() => handlePayBill(a.id!)}
+                            className="mt-3 w-full bg-red-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-red-700 active:scale-[.98] transition"
+                          >
+                            ✓ PAGAR AGORA
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  const inc = notif.data;
+                  const fmtAmt = `${formatBRLFromCents(inc.amount_cents)}`;
+                  const expectedLabel = inc.expected_date <= format(new Date(), 'yyyy-MM-dd')
+                    ? 'Esperada hoje ou antes'
+                    : format(new Date(inc.expected_date + 'T00:00:00'), "d 'de' MMM", { locale: ptBR });
+                  return (
+                    <div key={`inc-${inc.id}-${i}`} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl shrink-0 mt-0.5">💰</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-green-100 text-green-700">RECEITA</span>
+                          </div>
+                          <p className="font-bold text-sm text-gray-900 truncate">{inc.title}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{expectedLabel} · <span className="font-bold text-gray-700">{fmtAmt}</span></p>
+                          <button
+                            onClick={() => handleReceiveIncome(inc.id!)}
+                            className="mt-3 w-full bg-green-600 text-white font-black py-2.5 px-4 rounded-xl text-xs hover:bg-green-700 active:scale-[.98] transition"
+                          >
+                            ✓ RECEBI ESTE VALOR
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {notifications.length > 0 && (
+          <div className="border-t border-gray-100 p-4 shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <CheckCheck className="w-4 h-4" />
+              <span>Marque como pago ou recebido para atualizar o saldo.</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\hooks\useBalance.ts
+============================================================
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+
+export function useBalance() {
+  // Get wallet balance (SALDO ATUAL)
+  // This is the absolute truth of money physically available based on ATOMIC transactions.
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []);
+  const currentBalanceCents = wallets && wallets.length > 0 ? wallets[0].balance_cents : 390000; // Initialize visually for MVP
+
+  // Get pending expenses (CONTAS PENDENTES)
+  const pendingAccounts = useLiveQuery(() => 
+    db.accounts
+      .filter(a => a.status === 'pending' && (a.type as string) !== 'income')
+      .toArray(), 
+  []);
+  
+  // Get pending incomes (RECEITAS PENDENTES)
+  const pendingIncomes = useLiveQuery(() => 
+    db.income
+      .filter(i => i.status === 'pending')
+      .toArray(), 
+  []);
+  
+  if (!pendingAccounts || !pendingIncomes) {
+    return { currentBalanceCents, projectedBalanceCents: currentBalanceCents, pendingExpensesCents: 0, pendingIncomesCents: 0 };
+  }
+
+  let pendingExpensesCents = 0;
+  pendingAccounts.forEach(acc => {
+    pendingExpensesCents += acc.amount_cents;
+  });
+
+  let pendingIncomesCents = 0;
+  pendingIncomes.forEach(inc => {
+    pendingIncomesCents += inc.amount_cents;
+  });
+
+  // SALDO PROJETADO = Saldo Atual + Receitas Pendentes - Contas Pendentes
+  const projectedBalanceCents = currentBalanceCents + pendingIncomesCents - pendingExpensesCents;
+
+  return {
+    currentBalanceCents,
+    projectedBalanceCents,
+    pendingExpensesCents,
+    pendingIncomesCents
+  };
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\hooks\useFinancialSummary.ts
+============================================================
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { FinancialEngine } from '../services/FinancialEngine';
+import type { FinancialSummary } from '../types';
+
+export function useFinancialSummary(): FinancialSummary {
+  // Query all necessary tables dynamically and reactively via Dexie useLiveQuery
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
+  const incomes = useLiveQuery(() => db.income.toArray(), []) || [];
+  const reserves = useLiveQuery(() => db.reserves.toArray(), []) || [];
+  const debtInstallments = useLiveQuery(() => db.debt_installments.toArray(), []) || [];
+
+  // Rigorous Wallet balance logic
+  const currentBalanceCents = wallets.length > 0 ? wallets[0].balance_cents : 390000; // visual initial MVP balance
+
+  // Calculate the single immutable summary source of truth
+  return FinancialEngine.calculateSummary(accounts, incomes, reserves, currentBalanceCents, debtInstallments);
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\types\index.ts
+============================================================
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  created_at: Date;
+}
+
+export type AccountStatus = 'pending' | 'paid' | 'cancelled';
+export type AccountType = 'expense'; // V5: Only expenses now. Income is separated.
+export type AccountPriority = 'urgent' | 'next' | 'attention' | 'normal';
+
+export interface Account {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  due_date: string; // YYYY-MM-DD
+  category_id: string;
+  status: AccountStatus;
+  type: AccountType; // Keeping for retro-compatibility / structural safety
+  recurring_id?: string;
+  installment_id?: string;
+  installment_current?: number;
+  installment_total?: number;
+  debtId?: string;
+  debtInstallmentId?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type IncomeStatus = 'pending' | 'received' | 'cancelled';
+
+export interface Income {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  expected_date: string; // YYYY-MM-DD
+  received_date?: string; // YYYY-MM-DD
+  category_id: string;
+  status: IncomeStatus;
+  recurring_id?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type PaymentMethod = 'cash' | 'pix' | 'debit_card' | 'credit_card' | 'bank_transfer' | 'other';
+
+export interface Payment {
+  id: string;
+  account_id: string;
+  amount_cents: number;
+  paid_at: Date;
+  payment_method: PaymentMethod;
+  note?: string;
+  created_at: Date;
+}
+
+// debt_settlement added for Phase 2
+export type TransactionType =
+  | 'expense_paid'
+  | 'income_received'
+  | 'debt_paid'
+  | 'debt_settlement'
+  | 'reserve_contribution'
+  | 'manual_adjustment';
+
+export interface AppTransaction {
+  id: string;
+  wallet_id: string;
+  reference_id: string; // ID of Account, Income, Debt, etc.
+  type: TransactionType;
+  amount_cents: number; // Positive for incoming, negative for outgoing
+  date: Date;
+  description: string;
+  created_at: Date;
+}
+
+// ─── Debt Model ─────────────────────────────────────────────────────────────
+
+export type DebtStatus = 'active' | 'paid_off' | 'cancelled';
+
+/**
+ * Represents the primary financial obligation.
+ * paid_installments is a DERIVED/CACHE field — DebtInstallments are the source of truth.
+ */
+export interface Debt {
+  id: string;
+  title: string;
+  creditor: string;
+  /** Category inherited from the debt and propagated to each generated Account. */
+  category_id: string;
+  original_amount_cents: number;
+  total_installments: number;
+  /** Cache field. Source of truth = COUNT(installments WHERE status='paid') */
+  paid_installments: number;
+  installment_amount_cents: number; // value per installment (may differ with interest)
+  interest_rate?: number;           // % per period, optional
+  first_due_date: string;           // YYYY-MM-DD — date of installment #1
+  status: DebtStatus;
+  /**
+   * Settlement amount for early payoff. May differ from sum of remaining installments
+   * (e.g., discount, renegotiation, fees). Always store explicitly — never assume
+   * settlementAmountCents === sum of remaining installments.
+   */
+  settlement_amount_cents?: number;
+  settled_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type DebtInstallmentStatus = 'pending' | 'partial' | 'paid';
+
+/**
+ * Represents an individual installment obligation.
+ * The actual overdue determination is computed at runtime via DebtService.getInstallmentStatus()
+ * and is NOT stored to avoid stale data when the app is opened after several days.
+ */
+export interface DebtInstallment {
+  id: string;
+  debt_id: string;
+  account_id: string;           // FK → Account generated for this installment
+  installment_number: number;   // 1-based
+  amount_cents: number;         // Full installment value
+  paid_amount_cents: number;    // How much has been paid (0..amount_cents)
+  due_date: string;             // YYYY-MM-DD
+  status: DebtInstallmentStatus;
+  paid_at?: Date;               // Only set when fully paid
+  created_at: Date;
+}
+
+// ─── Other models ────────────────────────────────────────────────────────────
+
+export type RecurringFrequency = 'monthly';
+
+export interface RecurringAccount {
+  id: string;
+  title: string;
+  description?: string;
+  amount_cents: number;
+  type: AccountType | 'income'; // Legacy union needed here for now
+  frequency: RecurringFrequency;
+  day_of_month: number;
+  start_date: string;
+  end_date?: string;
+  active: boolean;
+  category_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM
+  description?: string;
+  category: 'personal' | 'work' | 'health' | 'study' | 'financial';
+  completed: boolean;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
+  created_at: Date;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'due_soon' | 'overdue' | 'income_expected' | 'income_received' | 'reserve_tip' | 'invest_tip' | 'goal' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  reference_id?: string;
+  created_at: Date;
+}
+
+export interface AppSettings {
+  id: string;
+  hide_values: boolean;
+  theme: 'light' | 'dark' | 'system';
+  minimum_reserve_cents: number;
+  salary_cents: number;
+  salary_day: number;
+  created_at: Date;
+}
+
+export interface Wallet {
+  id: string;
+  name: string;
+  balance_cents: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Reserve {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  target_cents: number;
+  current_cents: number;
+  contribution_cents: number;
+  contribution_frequency: 'weekly' | 'biweekly' | 'monthly';
+  contribution_day: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ReserveContribution {
+  id: string;
+  reserve_id: string;
+  amount_cents: number;
+  note?: string;
+  contributed_at: Date;
+  created_at: Date;
+}
+
+export interface PasswordEntry {
+  id: string;
+  title: string;
+  username?: string;
+  password: string;
+  url?: string;
+  notes?: string;
+  icon?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type InvestmentProfile = 'conservative' | 'moderate' | 'aggressive';
+
+export interface InvestmentPlan {
+  id: string;
+  profile: InvestmentProfile;
+  monthly_amount_cents: number;
+  allocations: { name: string; percent: number; color: string }[];
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface NextAction {
+  type: 'pay' | 'receive' | 'reserve' | 'invest' | 'review';
+  title: string;
+  description: string;
+  amountCents?: number;
+  entityId?: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface FinancialSummary {
+  currentBalanceCents: number;
+  projectedBalanceCents: number;
+  expectedIncomeCents: number;
+  receivedIncomeCents: number;
+  totalExpensesCents: number;
+  paidExpensesCents: number;
+  overdueExpensesCents: number;
+  suggestedReserveCents: number;
+  freeMoneyCents: number;
+  availableForInvestmentCents: number;
+  isTight: boolean;
+  nextAction: NextAction | null;
+  overdueCount: number;
+  // Phase 2 — Debt fields
+  totalDebtRemainingCents: number;       // sum of remaining on all active installments
+  monthlyDebtCommitmentCents: number;    // installments due this calendar month
+  overdueDebtInstallmentsCents: number;  // installments past due (not paid)
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\data\db.ts
+============================================================
+import Dexie, { type Table, type Transaction } from 'dexie';
+import type { 
+  Account, Category, Payment, RecurringAccount, 
+  Reminder, AppSettings, Wallet, Reserve, 
+  ReserveContribution, PasswordEntry, InvestmentPlan,
+  Income, Debt, DebtInstallment, AppNotification, AppTransaction
+} from '../types';
+
+export class FinanceDatabase extends Dexie {
+  categories!: Table<Category, string>;
+  accounts!: Table<Account, string>; // Now strictly Expenses
+  income!: Table<Income, string>;
+  payments!: Table<Payment, string>;
+  transactions!: Table<AppTransaction, string>;
+  recurring_accounts!: Table<RecurringAccount, string>;
+  reminders!: Table<Reminder, string>;
+  settings!: Table<AppSettings, string>;
+  wallets!: Table<Wallet, string>;
+  reserves!: Table<Reserve, string>;
+  reserve_contributions!: Table<ReserveContribution, string>;
+  passwords!: Table<PasswordEntry, string>;
+  investment_plans!: Table<InvestmentPlan, string>;
+  debts!: Table<Debt, string>;
+  debt_installments!: Table<DebtInstallment, string>;
+  notifications!: Table<AppNotification, string>;
+
+  constructor() {
+    super('FinanceAppDB');
+    
+    this.version(1).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type'
+    });
+
+    this.version(2).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, completed',
+      settings: 'id'
+    });
+
+    this.version(3).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id'
+    });
+
+    this.version(4).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id'
+    });
+
+    // V5: Separation of Income, Addition of Debts, Transactions and Notifications
+    this.version(5).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      income: 'id, expected_date, category_id, status, recurring_id',
+      payments: 'id, account_id, paid_at',
+      transactions: 'id, wallet_id, reference_id, type, date',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id',
+      debts: 'id, status, due_day',
+      debt_installments: 'id, debt_id, due_date, status',
+      notifications: 'id, type, created_at, read'
+    }).upgrade(async (tx: Transaction) => {
+      console.log('--- STARTING V5 MIGRATION: Separating Income from Accounts ---');
+      
+      const accountsTable = tx.table('accounts');
+      const incomeTable = tx.table('income');
+
+      const allAccounts = await accountsTable.toArray();
+      const totalAccounts = allAccounts.length;
+      
+      // We are looking for anything stored as type 'income'
+      const incomeAccounts = allAccounts.filter((a: any) => a.type === 'income');
+      const expectedIncomeCount = incomeAccounts.length;
+
+      console.log(`Total accounts found: ${totalAccounts}`);
+      console.log(`Total 'income' type to migrate: ${expectedIncomeCount}`);
+
+      let migratedCount = 0;
+
+      for (const acc of incomeAccounts) {
+        // Map account status to income status
+        let newStatus: 'pending' | 'received' | 'cancelled' = 'pending';
+        if (acc.status === 'paid') newStatus = 'received';
+        if (acc.status === 'cancelled') newStatus = 'cancelled';
+
+        await incomeTable.add({
+          id: acc.id,
+          title: acc.title,
+          description: acc.description,
+          amount_cents: acc.amount_cents,
+          expected_date: acc.due_date,
+          received_date: newStatus === 'received' ? acc.updated_at.toISOString().split('T')[0] : undefined,
+          category_id: acc.category_id,
+          status: newStatus,
+          recurring_id: acc.recurring_id,
+          created_at: acc.created_at || new Date(),
+          updated_at: acc.updated_at || new Date()
+        });
+
+        migratedCount++;
+      }
+
+      console.log(`Successfully migrated to Income table: ${migratedCount}`);
+
+      if (expectedIncomeCount !== migratedCount) {
+        console.error(`MIGRATION ABORTED: Expected ${expectedIncomeCount}, but migrated ${migratedCount}.`);
+        throw new Error('Migration failed due to count mismatch. Aborting to preserve data.');
+      }
+
+      console.log('Migration verified. 100% of income records migrated safely.');
+      console.log('NOTE: Legacy income records are preserved in the accounts table for now to ensure no data destruction. The application logic will ignore them.');
+    });
+
+    // V6: Add account_id index to debt_installments for reverse lookup (installment → account)
+    // No data migration needed — index is additive only.
+    this.version(6).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id, debtId, debtInstallmentId',
+      income: 'id, expected_date, category_id, status, recurring_id',
+      payments: 'id, account_id, paid_at',
+      transactions: 'id, wallet_id, reference_id, type, date',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id',
+      debts: 'id, status, category_id',
+      debt_installments: 'id, debt_id, due_date, status, account_id',
+      notifications: 'id, type, created_at, read'
+    });
+  }
+}
+
+export const db = new FinanceDatabase();
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\AccountRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Account, AccountStatus } from '../types';
+
+export class AccountRepository {
+  static async create(account: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date();
+    await db.accounts.add({
+      ...account,
+      id,
+      created_at: now,
+      updated_at: now,
+    });
+    return id;
+  }
+
+  static async getById(id: string): Promise<Account | undefined> {
+    return await db.accounts.get(id);
+  }
+
+  static async getAllExpenses(): Promise<Account[]> {
+    // V5: We now strictly ignore any legacy account where type === 'income'
+    const all = await db.accounts.toArray();
+    return all.filter(a => (a.type as string) !== 'income');
+  }
+
+  static async update(id: string, updates: Partial<Omit<Account, 'id'>>): Promise<void> {
+    await db.accounts.update(id, { ...updates, updated_at: new Date() });
+  }
+
+  static async updateStatus(id: string, status: AccountStatus): Promise<void> {
+    await db.accounts.update(id, { status, updated_at: new Date() });
+  }
+
+  // --- EVENT-DRIVEN PAYMENT LOGIC (ATOMIC) ---
+
+  static async markAsPaid(accountId: string): Promise<void> {
+    const account = await db.accounts.get(accountId);
+    if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
+
+    if (account.debtInstallmentId) {
+      const { DebtRepository } = await import('./DebtRepository');
+      return DebtRepository.payInstallment(account.debtInstallmentId, account.amount_cents);
+    }
+
+    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
+      // Re-fetch inside transaction
+      const account = await db.accounts.get(accountId);
+      if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
+
+      const now = new Date();
+
+      // 1. Update account
+      await db.accounts.update(accountId, { status: 'paid', updated_at: now });
+
+      // 2. Record payment history
+      await db.payments.add({
+        id: uuidv4(),
+        account_id: accountId,
+        amount_cents: account.amount_cents,
+        paid_at: now,
+        payment_method: 'other',
+        created_at: now,
+      });
+
+      // 3. Update Wallet Balance (- amount)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, { 
+        balance_cents: wallet.balance_cents - account.amount_cents,
+        updated_at: now
+      });
+
+      // 4. Record Transaction log
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: accountId,
+        type: 'expense_paid',
+        amount_cents: -account.amount_cents, // negative
+        date: now,
+        description: `Pagamento: ${account.title}`,
+        created_at: now
+      });
+    });
+  }
+
+  static async markAsPending(accountId: string): Promise<void> {
+    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
+      const account = await db.accounts.get(accountId);
+      if (!account || account.status === 'pending' || (account.type as string) === 'income') return;
+
+      const now = new Date();
+
+      // 1. Reverse account status
+      await db.accounts.update(accountId, { status: 'pending', updated_at: now });
+
+      // 2. Delete payment history
+      const payments = await db.payments.where('account_id').equals(accountId).toArray();
+      for (const p of payments) {
+        await db.payments.delete(p.id);
+      }
+
+      // 3. Reverse Wallet Balance (+ amount)
+      const wallets = await db.wallets.toArray();
+      const wallet = wallets[0];
+      if (wallet) {
+        await db.wallets.update(wallet.id, { 
+          balance_cents: wallet.balance_cents + account.amount_cents,
+          updated_at: now
+        });
+      }
+
+      // 4. Delete matching transaction history
+      const txs = await db.transactions.where('reference_id').equals(accountId).toArray();
+      for (const t of txs) {
+        await db.transactions.delete(t.id);
+      }
+    });
+  }
+
+  static async delete(id: string): Promise<void> {
+    await db.accounts.delete(id);
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\DebtRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Debt, DebtInstallment, Account } from '../types';
+import { DebtService } from '../services/DebtService';
+
+export class DebtRepository {
+  /**
+   * 1. Creates a Debt.
+   * 2. Generates N DebtInstallments.
+   * 3. Generates N corresponding Accounts to integrate with the rest of the app.
+   */
+  static async create(
+    debt: Omit<Debt, 'id' | 'paid_installments' | 'status' | 'created_at' | 'updated_at'>
+  ): Promise<string> {
+    return await db.transaction('rw', db.debts, db.debt_installments, db.accounts, async () => {
+      const debtId = uuidv4();
+      const now = new Date();
+
+      const newDebt: Debt = {
+        ...debt,
+        id: debtId,
+        status: 'active',
+        paid_installments: 0,
+        created_at: now,
+        updated_at: now,
+      };
+
+      await db.debts.add(newDebt);
+
+      const dueDates = DebtService.generateDueDates(debt.first_due_date, debt.total_installments);
+
+      for (let i = 0; i < debt.total_installments; i++) {
+        const installmentId = uuidv4();
+        const accountId = uuidv4();
+        const dueDate = dueDates[i];
+
+        const installment: DebtInstallment = {
+          id: installmentId,
+          debt_id: debtId,
+          account_id: accountId,
+          installment_number: i + 1,
+          amount_cents: debt.installment_amount_cents,
+          paid_amount_cents: 0,
+          due_date: dueDate,
+          status: 'pending',
+          created_at: now,
+        };
+
+        const account: Account = {
+          id: accountId,
+          title: `${debt.title} - Parcela ${i + 1}/${debt.total_installments}`,
+          amount_cents: debt.installment_amount_cents,
+          due_date: dueDate,
+          category_id: debt.category_id, // Inherit category from Debt
+          status: 'pending',
+          type: 'expense',
+          debtId: debtId,
+          debtInstallmentId: installmentId,
+          installment_current: i + 1,
+          installment_total: debt.total_installments,
+          created_at: now,
+          updated_at: now,
+        };
+
+        await db.debt_installments.add(installment);
+        await db.accounts.add(account);
+      }
+
+      return debtId;
+    });
+  }
+
+  static async getAll(): Promise<Debt[]> {
+    return await db.debts.toArray();
+  }
+
+  static async getById(id: string): Promise<Debt | undefined> {
+    return await db.debts.get(id);
+  }
+
+  static async getInstallments(debtId: string): Promise<DebtInstallment[]> {
+    const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+    return installments.sort((a, b) => a.installment_number - b.installment_number);
+  }
+
+  /**
+   * Pays a specific amount of an installment (partial or full).
+   * - Only debits the exact `amountCents` paid from the wallet.
+   * - Prevents duplicate payment.
+   * - Never debits more than the remaining amount.
+   */
+  static async payInstallment(installmentId: string, amountCents: number): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, db.wallets, db.transactions, async () => {
+      const inst = await db.debt_installments.get(installmentId);
+      if (!inst) throw new Error('Installment not found');
+
+      const remaining = DebtService.remainingCents(inst);
+      if (remaining <= 0 || inst.status === 'paid') return; // Already paid
+
+      // Cap payment at remaining amount to avoid overpayment
+      const actualPayment = Math.min(amountCents, remaining);
+      const newPaidAmount = inst.paid_amount_cents + actualPayment;
+      const isFullyPaid = newPaidAmount >= inst.amount_cents;
+      const newStatus = isFullyPaid ? 'paid' : 'partial';
+      const now = new Date();
+
+      // 1. Update Installment
+      await db.debt_installments.update(inst.id, {
+        paid_amount_cents: newPaidAmount,
+        status: newStatus,
+        paid_at: isFullyPaid ? now : undefined,
+      });
+
+      // 2. Update Account
+      await db.accounts.update(inst.account_id, {
+        status: newStatus === 'paid' ? 'paid' : 'pending',
+        updated_at: now,
+      });
+
+      // 3. Update Debt counters if fully paid
+      if (isFullyPaid) {
+        const debt = await db.debts.get(inst.debt_id);
+        if (debt) {
+          await db.debts.update(debt.id, {
+            paid_installments: debt.paid_installments + 1,
+            updated_at: now,
+          });
+        }
+      }
+
+      // 4. Update Wallet (Debit only the actualPayment)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, {
+        balance_cents: wallet.balance_cents - actualPayment,
+        updated_at: now,
+      });
+
+      // 5. Create a SINGLE transaction for this payment
+      const debt = await db.debts.get(inst.debt_id);
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: inst.id, // Reference is the installment
+        type: 'debt_paid',
+        amount_cents: -actualPayment, // Negative
+        date: now,
+        description: isFullyPaid
+          ? `Pagamento de parcela: ${debt?.title || 'Dívida'} (${inst.installment_number}/${debt?.total_installments})`
+          : `Pagamento parcial: ${debt?.title || 'Dívida'} (${inst.installment_number}/${debt?.total_installments})`,
+        created_at: now,
+      });
+    });
+  }
+
+  /**
+   * Settles the entire debt (early payoff or renegotiation).
+   * - Records ONE single transaction.
+   * - Debits Wallet ONCE.
+   * - Marks all pending/partial installments as 'paid'.
+   */
+  static async settleDebt(debtId: string, settlementAmountCents: number): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, db.wallets, db.transactions, async () => {
+      const debt = await db.debts.get(debtId);
+      if (!debt || debt.status === 'paid_off') return;
+
+      const now = new Date();
+      const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+      
+      // 1. Update all non-paid installments and their accounts
+      for (const inst of installments) {
+        if (inst.status !== 'paid') {
+          await db.debt_installments.update(inst.id, {
+            status: 'paid',
+            paid_amount_cents: inst.amount_cents, // Mark as fully paid for consistency
+            paid_at: now,
+          });
+
+          await db.accounts.update(inst.account_id, {
+            status: 'paid',
+            updated_at: now,
+          });
+        }
+      }
+
+      // 2. Update Debt
+      await db.debts.update(debtId, {
+        status: 'paid_off',
+        settlement_amount_cents: settlementAmountCents,
+        settled_at: now,
+        paid_installments: debt.total_installments,
+        updated_at: now,
+      });
+
+      // 3. Update Wallet (Debit settlement amount ONCE)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, {
+        balance_cents: wallet.balance_cents - settlementAmountCents,
+        updated_at: now,
+      });
+
+      // 4. Record a SINGLE transaction for the settlement
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: debtId, // Reference is the Debt itself
+        type: 'debt_settlement',
+        amount_cents: -settlementAmountCents, // Negative
+        date: now,
+        description: `Quitação antecipada — ${debt.title}`,
+        created_at: now,
+      });
+    });
+  }
+
+  static async cancelDebt(debtId: string): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, async () => {
+      await db.debts.update(debtId, { status: 'cancelled', updated_at: new Date() });
+      
+      const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+      for (const inst of installments) {
+        if (inst.status !== 'paid') {
+          await db.accounts.update(inst.account_id, { status: 'cancelled', updated_at: new Date() });
+        }
+      }
+    });
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\IncomeRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Income, IncomeStatus } from '../types';
+
+export class IncomeRepository {
+  static async create(income: Omit<Income, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date();
+    await db.income.add({
+      ...income,
+      id,
+      created_at: now,
+      updated_at: now,
+    });
+    return id;
+  }
+
+  static async getById(id: string): Promise<Income | undefined> {
+    return await db.income.get(id);
+  }
+
+  static async getAll(): Promise<Income[]> {
+    return await db.income.toArray();
+  }
+
+  static async update(id: string, updates: Partial<Omit<Income, 'id'>>): Promise<void> {
+    await db.income.update(id, { ...updates, updated_at: new Date() });
+  }
+
+  static async updateStatus(id: string, status: IncomeStatus): Promise<void> {
+    await db.income.update(id, { status, updated_at: new Date() });
+  }
+
+  // --- EVENT-DRIVEN RECEIVED LOGIC (ATOMIC) ---
+
+  static async markAsReceived(incomeId: string, receivedDate: string = new Date().toISOString().split('T')[0]): Promise<void> {
+    await db.transaction('rw', db.income, db.transactions, db.wallets, async () => {
+      const income = await db.income.get(incomeId);
+      if (!income || income.status === 'received') return;
+
+      const now = new Date();
+
+      // 1. Update income status
+      await db.income.update(incomeId, { 
+        status: 'received', 
+        received_date: receivedDate,
+        updated_at: now 
+      });
+
+      // 2. Get/Initialize Wallet
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      // 3. Update Wallet Balance (+ amount)
+      await db.wallets.update(wallet.id, { 
+        balance_cents: wallet.balance_cents + income.amount_cents,
+        updated_at: now
+      });
+
+      // 4. Record Transaction log
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: incomeId,
+        type: 'income_received',
+        amount_cents: income.amount_cents, // positive
+        date: now,
+        description: `Recebimento: ${income.title}`,
+        created_at: now
+      });
+    });
+  }
+
+  static async markAsPending(incomeId: string): Promise<void> {
+    await db.transaction('rw', db.income, db.transactions, db.wallets, async () => {
+      const income = await db.income.get(incomeId);
+      if (!income || income.status === 'pending') return;
+
+      const now = new Date();
+
+      // 1. Reverse income status
+      await db.income.update(incomeId, { 
+        status: 'pending', 
+        received_date: undefined,
+        updated_at: now 
+      });
+
+      // 2. Reverse Wallet Balance (- amount)
+      const wallets = await db.wallets.toArray();
+      const wallet = wallets[0];
+      if (wallet) {
+        await db.wallets.update(wallet.id, { 
+          balance_cents: wallet.balance_cents - income.amount_cents,
+          updated_at: now
+        });
+      }
+
+      // 3. Delete matching transaction history
+      const txs = await db.transactions.where('reference_id').equals(incomeId).toArray();
+      for (const t of txs) {
+        await db.transactions.delete(t.id);
+      }
+    });
+  }
+
+  static async delete(id: string): Promise<void> {
+    await db.income.delete(id);
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\PaymentRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Payment } from '../types';
+
+export class PaymentRepository {
+  static async create(payment: Omit<Payment, 'id' | 'created_at'>): Promise<string> {
+    const id = uuidv4();
+    await db.payments.add({
+      ...payment,
+      id,
+      created_at: new Date(),
+    });
+    return id;
+  }
+
+  static async getByAccountId(accountId: string): Promise<Payment[]> {
+    return await db.payments.where('account_id').equals(accountId).toArray();
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\AccountService.ts
+============================================================
+import type { Account, AccountPriority } from '../types';
+import { isOverdue } from '../utils/date';
+import { differenceInDays, startOfDay, parseISO } from 'date-fns';
+
+export class AccountService {
+  static calculatePriority(account: Account): AccountPriority {
+    if (account.status === 'paid' || account.status === 'cancelled') {
+      return 'normal';
+    }
+
+    if (isOverdue(account.due_date)) {
+      return 'urgent';
+    }
+
+    const today = startOfDay(new Date());
+    const dueDate = startOfDay(parseISO(account.due_date));
+    const diff = differenceInDays(dueDate, today);
+
+    if (diff === 0) return 'urgent'; // due today
+    if (diff >= 1 && diff <= 3) return 'next';
+    if (diff >= 4 && diff <= 7) return 'attention';
+    return 'normal';
+  }
+
+  static isAccountOverdue(account: Account): boolean {
+    if (account.status === 'paid' || account.status === 'cancelled') {
+      return false;
+    }
+    return isOverdue(account.due_date);
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\DebtService.ts
+============================================================
+import type { DebtInstallment } from '../types';
+import { getTodayISO } from '../utils/date';
+
+/**
+ * Computed installment status at runtime.
+ * 'overdue' is derived from due_date vs today, NOT stored in the DB,
+ * so the app remains correct even after several days without being opened.
+ */
+export type ComputedInstallmentStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+
+export class DebtService {
+  /**
+   * Determines the real status of an installment at the moment of evaluation.
+   *
+   * Rules:
+   * - paid: paid_amount_cents >= amount_cents
+   * - partial: 0 < paid_amount_cents < amount_cents (regardless of due_date)
+   * - overdue: not paid/partial AND due_date < today
+   * - pending: not paid/partial AND due_date >= today
+   */
+  static getInstallmentStatus(
+    installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents' | 'due_date' | 'status'>,
+    today: string = getTodayISO()
+  ): ComputedInstallmentStatus {
+    if (installment.paid_amount_cents >= installment.amount_cents) return 'paid';
+    if (installment.paid_amount_cents > 0) return 'partial';
+    if (installment.due_date < today) return 'overdue';
+    return 'pending';
+  }
+
+  static isOverdue(
+    installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents' | 'due_date'>,
+    today: string = getTodayISO()
+  ): boolean {
+    return (
+      installment.paid_amount_cents < installment.amount_cents &&
+      installment.due_date < today
+    );
+  }
+
+  static remainingCents(installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents'>): number {
+    return Math.max(0, installment.amount_cents - installment.paid_amount_cents);
+  }
+
+  /**
+   * Calculates the total remaining amount for a debt from its installments.
+   * This is the source of truth — not debt.current_amount_cents.
+   */
+  static calculateDebtRemaining(installments: DebtInstallment[]): number {
+    return installments.reduce((sum, inst) => sum + DebtService.remainingCents(inst), 0);
+  }
+
+  /**
+   * Counts paid installments from the installments array.
+   * Use this to verify / recalculate debt.paid_installments.
+   */
+  static countPaidInstallments(installments: DebtInstallment[]): number {
+    return installments.filter(i => i.paid_amount_cents >= i.amount_cents).length;
+  }
+
+  /**
+   * Generates the due dates for each installment starting from first_due_date,
+   * incrementing by 1 month per installment.
+   */
+  static generateDueDates(firstDueDate: string, count: number): string[] {
+    const dates: string[] = [];
+    const [year, month, day] = firstDueDate.split('-').map(Number);
+    for (let i = 0; i < count; i++) {
+      const d = new Date(year, month - 1 + i, day);
+      // Handle month overflow (e.g. Jan 31 + 1 month → Feb 28)
+      if (d.getDate() !== day) {
+        d.setDate(0); // last day of previous month
+      }
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    return dates;
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\FinancialEngine.ts
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import type { Account, Income, Reserve, DebtInstallment, FinancialSummary, NextAction } from '../types';
+import { AccountService } from './AccountService';
+import { DebtService } from './DebtService';
+import { getTodayISO } from '../utils/date';
+
+export class FinancialEngine {
+  static calculateSummary(
+    accounts: Account[],
+    incomes: Income[],
+    reserves: Reserve[],
+    currentBalanceCents: number,
+    debtInstallments: DebtInstallment[] = []
+  ): FinancialSummary {
+    const today = getTodayISO();
+
+    let expectedIncomeCents = 0;
+    let receivedIncomeCents = 0;
+    let totalExpensesCents = 0;
+    let paidExpensesCents = 0;
+    let overdueExpensesCents = 0;
+    let overdueCount = 0;
+
+    // 1. Process Income
+    incomes.forEach(inc => {
+      if (inc.status !== 'cancelled') {
+        expectedIncomeCents += inc.amount_cents;
+        if (inc.status === 'received') {
+          receivedIncomeCents += inc.amount_cents;
+        }
+      }
+    });
+
+    // 2. Process Expenses (Debt installments are already included as Accounts, so this naturally covers projected balance and total expenses without duplication)
+    accounts.filter(a => (a.type as string) !== 'income' && a.status !== 'cancelled').forEach(acc => {
+      totalExpensesCents += acc.amount_cents;
+      
+      // Partial debt payments reflect on account status. If account is pending/partial, 
+      // we only count what is truly paid if we had partial tracking on Account. 
+      // For MVP, if it's 'partial', Account is 'pending'. We don't add to paidExpensesCents.
+      if (acc.status === 'paid') {
+        paidExpensesCents += acc.amount_cents;
+      } else if (acc.status === 'pending' || acc.status === 'partial' as any) {
+        if (AccountService.isAccountOverdue(acc)) {
+          overdueExpensesCents += acc.amount_cents;
+          overdueCount++;
+        }
+      }
+    });
+
+    const pendingExpensesCents = totalExpensesCents - paidExpensesCents;
+    const pendingIncomesCents = expectedIncomeCents - receivedIncomeCents;
+
+    // 3. Reserves calculation
+    const totalReserveTarget = reserves.reduce((sum, r) => sum + r.target_cents, 0);
+    const totalReserveCurrent = reserves.reduce((sum, r) => sum + r.current_cents, 0);
+    const reserveNeeded = totalReserveTarget - totalReserveCurrent;
+    
+    let suggestedReserveCents = 0;
+    if (reserveNeeded > 0) {
+      suggestedReserveCents = Math.min(reserveNeeded, expectedIncomeCents * 0.1); 
+    }
+
+    // 4. Debt Reporting Metrics
+    let totalDebtRemainingCents = 0;
+    let monthlyDebtCommitmentCents = 0;
+    let overdueDebtInstallmentsCents = 0;
+    
+    const currentMonth = today.substring(0, 7); // YYYY-MM
+
+    debtInstallments.forEach(inst => {
+      const remaining = DebtService.remainingCents(inst);
+      if (remaining > 0) {
+        totalDebtRemainingCents += remaining;
+        
+        if (DebtService.isOverdue(inst, today)) {
+          overdueDebtInstallmentsCents += remaining;
+        }
+        
+        if (inst.due_date.startsWith(currentMonth)) {
+          monthlyDebtCommitmentCents += inst.amount_cents;
+        }
+      }
+    });
+
+    // 5. Balance Calculations
+    const projectedBalanceCents = currentBalanceCents + pendingIncomesCents - pendingExpensesCents;
+    const freeMoneyCents = expectedIncomeCents - totalExpensesCents - suggestedReserveCents;
+    const availableForInvestmentCents = freeMoneyCents > 0 ? freeMoneyCents * 0.5 : 0; 
+    const isTight = freeMoneyCents < 0;
+
+    // 6. NextAction logic (Priorities)
+    let nextAction: NextAction | null = null;
+
+    // Priority 1: Critical Overdue Bills
+    const criticalOverdue = accounts.filter(
+      a => (a.status === 'pending' || a.status === 'partial' as any) && (a.type as string) !== 'income' && AccountService.isAccountOverdue(a)
+    ).sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+    if (criticalOverdue.length > 0) {
+      nextAction = {
+        type: 'pay',
+        title: 'Conta Atrasada',
+        description: `Pagar "${criticalOverdue[0].title}" • Venceu em ${criticalOverdue[0].due_date.split('-').reverse().join('/')}`,
+        amountCents: criticalOverdue[0].amount_cents,
+        entityId: criticalOverdue[0].id,
+        priority: 'critical'
+      };
+    }
+
+    // Priority 2: Receive pending income expected by today or earlier
+    if (!nextAction) {
+      const pendingIncomeToday = incomes.filter(
+        i => i.status === 'pending' && i.expected_date <= today
+      ).sort((a, b) => a.expected_date.localeCompare(b.expected_date));
+
+      if (pendingIncomeToday.length > 0) {
+        nextAction = {
+          type: 'receive',
+          title: 'Confirmar Recebimento',
+          description: `Você já recebeu "${pendingIncomeToday[0].title}"? • Esperado em ${pendingIncomeToday[0].expected_date.split('-').reverse().join('/')}`,
+          amountCents: pendingIncomeToday[0].amount_cents,
+          entityId: pendingIncomeToday[0].id,
+          priority: 'high'
+        };
+      }
+    }
+
+    // Priority 3: Pay bill due today
+    if (!nextAction) {
+      const dueToday = accounts.filter(
+        a => (a.status === 'pending' || a.status === 'partial' as any) && (a.type as string) !== 'income' && a.due_date === today
+      );
+
+      if (dueToday.length > 0) {
+        nextAction = {
+          type: 'pay',
+          title: 'Vence Hoje',
+          description: `Pagar "${dueToday[0].title}" • Vence hoje`,
+          amountCents: dueToday[0].amount_cents,
+          entityId: dueToday[0].id,
+          priority: 'high'
+        };
+      }
+    }
+
+    // Priority 4: Reserve Emergency Aporte
+    if (!nextAction && suggestedReserveCents > 0 && currentBalanceCents >= suggestedReserveCents) {
+      nextAction = {
+        type: 'reserve',
+        title: 'Proteger seu Futuro',
+        description: `Separar R$ ${formatBRLFromCents(suggestedReserveCents).replace('R$ ', '')} para sua reserva de emergência`,
+        amountCents: suggestedReserveCents,
+        priority: 'medium'
+      };
+    }
+
+    // Priority 5: Invest Tip
+    if (!nextAction && availableForInvestmentCents > 0) {
+      nextAction = {
+        type: 'invest',
+        title: 'Dinheiro Livre para Investir',
+        description: `Considere planejar o aporte de R$ ${formatBRLFromCents(availableForInvestmentCents).replace('R$ ', '')} este mês`,
+        amountCents: availableForInvestmentCents,
+        priority: 'low'
+      };
+    }
+
+    return {
+      currentBalanceCents,
+      projectedBalanceCents,
+      expectedIncomeCents,
+      receivedIncomeCents,
+      totalExpensesCents,
+      paidExpensesCents,
+      overdueExpensesCents,
+      suggestedReserveCents,
+      freeMoneyCents,
+      availableForInvestmentCents,
+      isTight,
+      nextAction,
+      overdueCount,
+      // Phase 2
+      totalDebtRemainingCents,
+      monthlyDebtCommitmentCents,
+      overdueDebtInstallmentsCents
+    };
+  }
+
+  static calculateScore(summary: FinancialSummary): number {
+    let score = 100;
+    
+    // Penalties
+    if (summary.overdueCount > 0) score -= (summary.overdueCount * 15);
+    if (summary.isTight) score -= 20;
+    
+    return Math.max(0, Math.min(100, score));
+  }
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\utils\currency.ts
+============================================================
+export function formatBRLFromCents(cents: number): string {
+  if (isNaN(cents)) cents = 0;
+  
+  const value = cents / 100;
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+
+  // Normalize non-breaking spaces to regular spaces for consistency
+  return formatted.replace(/\u00A0/g, ' ');
+}
+
+export function parseBRLToCents(value: string | number): number {
+  if (typeof value === 'number') {
+    return Math.round(value); // If it's already a number, assume it's cents and round it safely
+  }
+  
+  if (!value) return 0;
+
+  const isNegative = value.includes('-');
+  const numericString = value.replace(/[^\d]/g, '');
+  
+  if (!numericString) return 0;
+  
+  const parsed = parseInt(numericString, 10);
+  return isNegative ? -parsed : parsed;
+}
+
+
+============================================================
+ARQUIVO: C:\finance\src\utils\date.ts
+============================================================
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
+
+export function getTodayISO(): string {
+  return format(new Date(), 'yyyy-MM-dd');
+}
+
+export function isOverdue(dueDateISO: string): boolean {
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(parseISO(dueDateISO));
+  return isBefore(dueDate, today);
+}
+
+

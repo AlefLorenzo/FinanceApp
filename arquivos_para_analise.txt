@@ -1,0 +1,1815 @@
+﻿=============================================
+ ARQUIVOS DO SISTEMA FINANCEIRO - ANALISE
+=============================================
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\AccountForm.tsx
+============================================================
+import React, { useState } from 'react';
+import { useAccounts } from '../hooks/useAccounts';
+import { IncomeRepository } from '../repository/IncomeRepository';
+import { getTodayISO } from '../utils/date';
+import { PlusCircle, X } from 'lucide-react';
+import { MoneyInput } from './ui/MoneyInput';
+
+type AccountType = 'expense' | 'income';
+
+interface AccountFormProps {
+  type?: AccountType;
+}
+
+export function AccountForm({ type = 'expense' }: AccountFormProps) {
+  const { addAccount } = useAccounts();
+
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [amountCents, setAmountCents] = useState(0);
+  const [dueDate, setDueDate] = useState(getTodayISO());
+
+  const resetForm = () => {
+    setTitle('');
+    setAmountCents(0);
+    setDueDate(getTodayISO());
+  };
+
+  const closeForm = () => {
+    setOpen(false);
+    resetForm();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim() || amountCents <= 0) return;
+
+    if (type === 'income') {
+      await IncomeRepository.create({
+        title: title.trim(),
+        amount_cents: amountCents,
+        expected_date: dueDate,
+        status: 'pending',
+        category_id: 'default',
+      });
+    } else {
+      await addAccount({
+        title: title.trim(),
+        amount_cents: amountCents,
+        due_date: dueDate,
+        type: 'expense',
+        status: 'pending',
+        category_id: 'default',
+      });
+    }
+
+    closeForm();
+  };
+
+  const isExpense = type === 'expense';
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`w-full min-h-[58px] flex items-center justify-center gap-2 px-4 py-4 text-white font-black rounded-2xl shadow-sm active:scale-[0.98] transition text-base ${
+          isExpense
+            ? 'bg-red-600 hover:bg-red-700'
+            : 'bg-green-600 hover:bg-green-700'
+        }`}
+      >
+        <PlusCircle className="w-5 h-5 shrink-0" />
+
+        <span>
+          {isExpense ? 'Nova Despesa' : 'Nova Receita'}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm overflow-y-auto"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeForm();
+          }}
+        >
+          <div className="min-h-full w-full flex items-center justify-center p-4">
+            <div
+              className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+
+              <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-gray-100">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-900">
+                    {isExpense ? 'Adicionar Despesa' : 'Adicionar Receita'}
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    {isExpense
+                      ? 'Cadastre uma conta que precisa pagar'
+                      : 'Cadastre um valor que espera receber'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleSubmit}
+                className="p-5 sm:p-6 space-y-5"
+              >
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    {isExpense ? 'Nome da despesa' : 'Nome da receita'}
+                  </label>
+
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                    placeholder={
+                      isExpense
+                        ? 'Ex.: Internet, Energia...'
+                        : 'Ex.: Salário, Freelance...'
+                    }
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Valor
+                    </label>
+
+                    <MoneyInput
+                      valueCents={amountCents}
+                      onChangeCents={setAmountCents}
+                      className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {isExpense ? 'Vencimento' : 'Data prevista'}
+                    </label>
+
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="w-full min-h-[52px] border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    className="min-h-[52px] rounded-xl border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className={`min-h-[52px] rounded-xl text-white font-bold transition ${
+                      isExpense
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {isExpense ? 'Salvar Despesa' : 'Salvar Receita'}
+                  </button>
+
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\AccountList.tsx
+============================================================
+import { formatBRLFromCents } from '../utils/currency';
+import { useAccounts } from '../hooks/useAccounts';
+import { AccountService } from '../services/AccountService';
+import { getTodayISO } from '../utils/date';
+import { CheckCircle2, Circle } from 'lucide-react';
+import type { Account } from '../types';
+
+interface Props {
+  limit?: number;
+  hidePaid?: boolean;
+  type?: 'expense' | 'income';
+}
+
+export function AccountList({ limit, hidePaid, type }: Props) {
+  const { accounts, togglePaid } = useAccounts();
+  const today = getTodayISO();
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'text-red-700 bg-red-100 border-red-200';
+      case 'next':
+        return 'text-orange-700 bg-orange-100 border-orange-200';
+      case 'attention':
+        return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      default:
+        return 'text-blue-700 bg-blue-100 border-blue-200';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'Urgente';
+      case 'next':
+        return 'Próximo';
+      case 'attention':
+        return 'Atenção';
+      default:
+        return 'Futura';
+    }
+  };
+
+  const getSortScore = (account: Account) => {
+    if (account.status === 'paid') return 999;
+
+    if (AccountService.isAccountOverdue(account)) return 1;
+    if (account.due_date === today) return 2;
+
+    const priority = AccountService.calculatePriority(account);
+
+    if (priority === 'next') return 3;
+    if (priority === 'attention') return 4;
+
+    return 5;
+  };
+
+  let filteredAccounts = [...accounts];
+
+  if (type) {
+    filteredAccounts = filteredAccounts.filter(
+      account => account.type === type
+    );
+  }
+
+  if (hidePaid) {
+    filteredAccounts = filteredAccounts.filter(
+      account => account.status !== 'paid'
+    );
+  }
+
+  if (filteredAccounts.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-10 bg-white rounded-2xl border border-dashed border-gray-300">
+        {type === 'income'
+          ? 'Nenhuma receita cadastrada.'
+          : 'Nenhuma despesa cadastrada.'}
+      </div>
+    );
+  }
+
+  filteredAccounts.sort((a, b) => {
+    const scoreA = getSortScore(a);
+    const scoreB = getSortScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+
+    return a.due_date.localeCompare(b.due_date);
+  });
+
+  if (limit) {
+    filteredAccounts = filteredAccounts.slice(0, limit);
+  }
+
+  return (
+    <div className="space-y-3 w-full">
+      {filteredAccounts.map(account => {
+        const priority = AccountService.calculatePriority(account);
+        const isPaid = account.status === 'paid';
+        const isOverdue = AccountService.isAccountOverdue(account);
+        const isToday = account.due_date === today && !isPaid;
+
+        return (
+          <div
+            key={account.id}
+            className={`w-full p-4 rounded-2xl shadow-sm border-l-4 bg-white flex items-center justify-between transition-all gap-3 ${
+              isPaid
+                ? 'border-gray-200 opacity-60'
+                : (account.type as string) === 'income'
+                  ? 'border-green-500'
+                  : isOverdue
+                    ? 'border-red-600'
+                    : isToday
+                      ? 'border-yellow-500'
+                      : 'border-blue-500'
+            }`}
+          >
+            <div className="flex flex-col flex-1 min-w-0">
+              <h3
+                className={`font-bold text-base break-words whitespace-normal ${
+                  isPaid
+                    ? 'line-through text-gray-500'
+                    : 'text-gray-900'
+                }`}
+              >
+                {account.title}
+              </h3>
+
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-xs font-medium text-gray-500 shrink-0">
+                  {account.due_date.split('-').reverse().join('/')}
+                </span>
+
+                {!isPaid && (
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                      isOverdue
+                        ? 'text-red-700 bg-red-100 border-red-200'
+                        : isToday
+                          ? 'text-yellow-700 bg-yellow-100 border-yellow-200'
+                          : getPriorityColor(priority)
+                    }`}
+                  >
+                    {isOverdue
+                      ? 'Atrasada'
+                      : isToday
+                        ? 'Vence Hoje'
+                        : getPriorityLabel(priority)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+
+              <span
+                className={`font-bold text-sm sm:text-base tracking-tight amount-text text-right whitespace-nowrap ${
+                  isPaid
+                    ? 'text-gray-400'
+                    : account.type === 'expense'
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                }`}
+              >
+                {account.type === 'expense' ? '- ' : '+ '}
+                {formatBRLFromCents(account.amount_cents)}
+              </span>
+
+              <button
+                onClick={() => togglePaid(account.id, isPaid)}
+                className="p-1 rounded-full hover:bg-gray-100 transition focus:outline-none shrink-0"
+                aria-label={
+                  isPaid
+                    ? 'Marcar como pendente'
+                    : 'Marcar como pago'
+                }
+              >
+                {isPaid ? (
+                  <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-green-500" />
+                ) : (
+                  <Circle className="w-6 h-6 sm:w-7 sm:h-7 text-gray-300 hover:text-gray-400" />
+                )}
+              </button>
+
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\AppDownloadButton.tsx
+============================================================
+import { Download, Smartphone } from 'lucide-react';
+
+export default function AppDownloadButton() {
+  return (
+    <a
+      href="/downloads/Finance-App.apk"
+      download="Finance-App.apk"
+      className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
+        <Smartphone className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">Baixar Finance App</p>
+        <p className="text-xs text-slate-500">Aplicativo Android • APK</p>
+      </div>
+
+      <Download className="h-5 w-5 shrink-0" />
+    </a>
+  );
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\components\DebtsView.tsx
+============================================================
+import { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../data/db';
+import { DebtService } from '../services/DebtService';
+import { DebtRepository } from '../repository/DebtRepository';
+import type { Debt, DebtInstallment } from '../types';
+import { format, parseISO } from 'date-fns';
+import { CreditCard, Plus, ChevronRight, AlertTriangle, ChevronLeft, Calendar } from 'lucide-react';
+import { getTodayISO } from '../utils/date';
+import { MoneyInput } from './ui/MoneyInput';
+import { formatBRLFromCents } from '../utils/currency';
+
+export function DebtsView() {
+  const [activeView, setActiveView] = useState<'list' | 'create' | 'detail'>('list');
+  const [selectedDebtId, setSelectedDebtId] = useState<string | null>(null);
+
+  const debts = useLiveQuery(() => db.debts.toArray(), []) || [];
+  const allInstallments = useLiveQuery(() => db.debt_installments.toArray(), []) || [];
+  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
+
+  const today = getTodayISO();
+
+  // ----- COMPUTED METRICS -----
+  const activeDebts = debts.filter(d => d.status === 'active');
+  const totalRemainingCents = useMemo(() => {
+    return activeDebts.reduce((sum, d) => {
+      const dInsts = allInstallments.filter(i => i.debt_id === d.id);
+      return sum + DebtService.calculateDebtRemaining(dInsts);
+    }, 0);
+  }, [activeDebts, allInstallments]);
+
+  const overdueCount = useMemo(() => {
+    return allInstallments.filter(i => DebtService.isOverdue(i, today)).length;
+  }, [allInstallments, today]);
+
+  // ----- RENDER -----
+  if (activeView === 'create') {
+    return <DebtCreateForm onBack={() => setActiveView('list')} categories={categories} />;
+  }
+
+  if (activeView === 'detail' && selectedDebtId) {
+    const debt = debts.find(d => d.id === selectedDebtId);
+    const insts = allInstallments.filter(i => i.debt_id === selectedDebtId).sort((a, b) => a.installment_number - b.installment_number);
+    if (debt) {
+      return <DebtDetail debt={debt} installments={insts} onBack={() => setActiveView('list')} />;
+    }
+  }
+
+  // LIST VIEW
+  return (
+    <div className="space-y-6 pb-24 animate-in fade-in duration-300">
+      <div className="bg-gradient-to-br from-indigo-900 to-indigo-800 text-white rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="w-5 h-5 text-indigo-300" />
+            <h2 className="text-sm font-black uppercase tracking-widest text-indigo-300">Minhas DÃ­vidas</h2>
+          </div>
+          <p className="text-gray-400 text-sm mb-1">Total Restante</p>
+          <h1 className="text-4xl font-black mb-6">{formatBRLFromCents(totalRemainingCents)}</h1>
+          
+          <div className="flex gap-4">
+            <div className="bg-white/10 rounded-2xl p-4 flex-1 backdrop-blur-sm">
+              <p className="text-2xl font-black">{activeDebts.length}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-indigo-300 mt-1">Em Andamento</p>
+            </div>
+            <div className={`rounded-2xl p-4 flex-1 backdrop-blur-sm ${overdueCount > 0 ? 'bg-red-500/20 text-red-100' : 'bg-white/10'}`}>
+              <p className="text-2xl font-black">{overdueCount}</p>
+              <p className={`text-[10px] uppercase tracking-wider font-bold mt-1 ${overdueCount > 0 ? 'text-red-300' : 'text-indigo-300'}`}>Atrasadas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setActiveView('create')}
+        className="w-full bg-white text-indigo-600 font-black p-5 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+      >
+        <Plus className="w-5 h-5" />
+        NOVA DÃVIDA
+      </button>
+
+      <div className="space-y-4">
+        {activeDebts.length === 0 ? (
+          <p className="text-center text-gray-400 py-8">Nenhuma dÃ­vida cadastrada.</p>
+        ) : (
+          activeDebts.map(debt => {
+            const dInsts = allInstallments.filter(i => i.debt_id === debt.id);
+            const remaining = DebtService.calculateDebtRemaining(dInsts);
+            const paidCount = DebtService.countPaidInstallments(dInsts);
+            const isDebtOverdue = dInsts.some(i => DebtService.isOverdue(i, today));
+            const nextPending = dInsts.find(i => i.status !== 'paid');
+
+            return (
+              <div 
+                key={debt.id} 
+                onClick={() => { setSelectedDebtId(debt.id); setActiveView('detail'); }}
+                className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-95 transition-transform"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {isDebtOverdue ? <span className="text-xs">ðŸ”´</span> : <span className="text-xs">ðŸŸ¡</span>}
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${isDebtOverdue ? 'text-red-500' : 'text-yellow-600'}`}>
+                        {isDebtOverdue ? 'Atrasada' : 'Em Andamento'}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-900">{debt.title}</h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-gray-900">{formatBRLFromCents(remaining)}</p>
+                    <p className="text-xs text-gray-400">restantes</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+                  <span>{paidCount} de {debt.total_installments} parcelas pagas</span>
+                  {nextPending && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      PrÃ³x: {format(parseISO(nextPending.due_date), 'dd/MM')}
+                    </span>
+                  )}
+                </div>
+
+                <button className="w-full py-3 bg-gray-50 text-indigo-600 font-bold rounded-xl text-sm flex items-center justify-center gap-1">
+                  VER DÃVIDA <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// DEBT DETAIL VIEW
+// -----------------------------------------------------------------------------
+
+function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: DebtInstallment[], onBack: () => void }) {
+  const [payModal, setPayModal] = useState<{ isOpen: boolean, inst: DebtInstallment | null }>({ isOpen: false, inst: null });
+  const [settleModal, setSettleModal] = useState(false);
+
+  const today = getTodayISO();
+  const paidCount = DebtService.countPaidInstallments(installments);
+  const remainingCents = DebtService.calculateDebtRemaining(installments);
+  const totalPaidCents = debt.original_amount_cents - remainingCents; // Approximation for UI
+  const progressPct = Math.round((paidCount / debt.total_installments) * 100);
+
+
+  const handleSettle = async () => {
+    await DebtRepository.settleDebt(debt.id, remainingCents);
+    setSettleModal(false);
+  };
+
+  return (
+    <div className="space-y-6 pb-24 animate-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center gap-3 mb-2">
+        <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm text-gray-600">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-lg font-black text-gray-900 uppercase truncate">{debt.title}</h2>
+      </div>
+
+      {/* Summary Card */}
+      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Original</p>
+            <p className="font-bold text-sm">{formatBRLFromCents(debt.original_amount_cents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Pago</p>
+            <p className="font-bold text-sm text-green-600">{formatBRLFromCents(totalPaidCents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Restante</p>
+            <p className="font-black text-sm text-gray-900">{formatBRLFromCents(remainingCents)}</p>
+          </div>
+        </div>
+
+        <div className="mb-2">
+          <div className="flex justify-between text-xs font-bold mb-1.5">
+            <span className="text-indigo-600">{progressPct}% pago</span>
+            <span className="text-gray-400">{debt.total_installments - paidCount} parcelas restantes</span>
+          </div>
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-500 rounded-full transition-all duration-700" style={{ width: `${progressPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Action: Settle */}
+      {debt.status === 'active' && (
+        <button 
+          onClick={() => setSettleModal(true)}
+          className="w-full bg-indigo-50 text-indigo-700 font-black p-4 rounded-2xl shadow-sm border border-indigo-100 active:scale-95 transition-transform"
+        >
+          QUITAR DÃVIDA
+        </button>
+      )}
+
+      {/* Installments List */}
+      <div>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">Parcelas</h3>
+        <div className="space-y-3">
+          {installments.map(inst => {
+            const status = DebtService.getInstallmentStatus(inst, today);
+            const remaining = DebtService.remainingCents(inst);
+            
+            let statusColor = 'bg-white border-gray-100 text-gray-900';
+            let badge = '';
+            
+            if (status === 'paid') {
+              statusColor = 'bg-gray-50 border-gray-100 opacity-60';
+              badge = 'âœ… PAGA';
+            } else if (status === 'overdue') {
+              statusColor = 'bg-red-50 border-red-200';
+              badge = 'ðŸ”´ ATRASADA';
+            } else if (status === 'partial') {
+              statusColor = 'bg-yellow-50 border-yellow-200';
+              badge = 'ðŸŸ¡ PARCIAL';
+            }
+
+            return (
+              <div key={inst.id} className={`rounded-2xl p-4 border shadow-sm ${statusColor}`}>
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm">
+                        {format(parseISO(inst.due_date), 'dd/MM')}
+                      </span>
+                      {badge && <span className="text-[10px] font-black uppercase tracking-wider">{badge}</span>}
+                    </div>
+                    <p className="text-xs text-gray-500">Parcela {inst.installment_number}/{debt.total_installments}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black">{formatBRLFromCents(inst.amount_cents)}</p>
+                  </div>
+                </div>
+
+                {status === 'partial' && (
+                  <div className="bg-white/60 rounded-xl p-3 mb-3 text-xs flex justify-between border border-yellow-100">
+                    <div>
+                      <span className="text-gray-500 block mb-1">Pago:</span>
+                      <span className="font-bold text-green-600">{formatBRLFromCents(inst.paid_amount_cents)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-500 block mb-1">Restante:</span>
+                      <span className="font-bold text-gray-900">{formatBRLFromCents(remaining)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {status !== 'paid' && (
+                  <button 
+                    onClick={() => setPayModal({ isOpen: true, inst })}
+                    className="w-full mt-2 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
+                  >
+                    {status === 'partial' ? 'PAGAR RESTANTE' : 'PAGAR PARCELA'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Pay Modal */}
+      {payModal.isOpen && payModal.inst && (
+        <PayInstallmentModal 
+          inst={payModal.inst} 
+          onClose={() => setPayModal({ isOpen: false, inst: null })} 
+        />
+      )}
+
+      {/* Settle Modal */}
+      {settleModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+            <h3 className="text-lg font-black text-center mb-6">QUITAR DÃVIDA</h3>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between py-3 border-b border-gray-100">
+                <span className="text-gray-500">Saldo atual</span>
+                <span className="font-bold">{formatBRLFromCents(remainingCents)}</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-gray-100">
+                <span className="text-gray-500">Parcelas restantes</span>
+                <span className="font-bold">{debt.total_installments - paidCount}</span>
+              </div>
+              <div className="flex justify-between py-3 bg-gray-50 rounded-xl px-4">
+                <span className="text-gray-900 font-bold">Valor para quitaÃ§Ã£o</span>
+                <span className="font-black text-indigo-600 text-lg">{formatBRLFromCents(remainingCents)}</span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-xs font-medium flex gap-3 mb-6">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-600" />
+              <p>âš ï¸ Essa aÃ§Ã£o registrarÃ¡ a quitaÃ§Ã£o antecipada da dÃ­vida e debitarÃ¡ o valor do seu saldo atual.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setSettleModal(false)}
+                className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={handleSettle}
+                className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl"
+              >
+                QUITAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// PAY INSTALLMENT MODAL
+// -----------------------------------------------------------------------------
+
+function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose: () => void }) {
+  const remaining = DebtService.remainingCents(inst);
+  const [payAmountCents, setPayAmountCents] = useState(remaining);
+
+  const handlePay = async () => {
+    let amountCents = payAmountCents;
+    if (amountCents <= 0) return;
+    
+    // Cap visually to avoid confusion, though repo already caps it
+    if (amountCents > remaining) amountCents = remaining;
+
+    await DebtRepository.payInstallment(inst.id, amountCents);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+        <h3 className="text-lg font-black text-center mb-6">PAGAR PARCELA</h3>
+        
+        <div className="space-y-4 mb-6">
+          <div className="flex justify-between py-2">
+            <span className="text-gray-500">Valor da parcela</span>
+            <span className="font-bold">{formatBRLFromCents(inst.amount_cents)}</span>
+          </div>
+          {inst.paid_amount_cents > 0 && (
+            <div className="flex justify-between py-2 text-green-600">
+              <span>JÃ¡ pago</span>
+              <span className="font-bold">{formatBRLFromCents(inst.paid_amount_cents)}</span>
+            </div>
+          )}
+          <div className="flex justify-between py-2 border-t border-gray-100 pt-3">
+            <span className="text-gray-900 font-bold">Restante</span>
+            <span className="font-black text-gray-900">{formatBRLFromCents(remaining)}</span>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">VALOR A PAGAR AGORA</label>
+          <MoneyInput
+            valueCents={payAmountCents}
+            onChangeCents={setPayAmountCents}
+            className="w-full text-center text-4xl font-black text-indigo-600 bg-gray-50 rounded-2xl py-4 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none"
+            autoFocus
+          />
+          <p className="text-center text-xs text-gray-400 mt-2">
+            Pode ser parcial. O saldo serÃ¡ atualizado na hora.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl">CANCELAR</button>
+          <button onClick={handlePay} className="flex-1 py-4 font-black text-white bg-indigo-600 rounded-xl">REGISTRAR</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CREATE DEBT FORM
+// -----------------------------------------------------------------------------
+
+function DebtCreateForm({ onBack, categories }: { onBack: () => void, categories: any[] }) {
+  const [title, setTitle] = useState('');
+  const [creditor, setCreditor] = useState('');
+  const [originalAmountCents, setOriginalAmountCents] = useState(0);
+  const [installments, setInstallments] = useState('12');
+  const [installmentAmountCents, setInstallmentAmountCents] = useState(0);
+  const [firstDate, setFirstDate] = useState(getTodayISO());
+  const [categoryId, setCategoryId] = useState('');
+
+  // Use the state if valid, otherwise fallback to the first available category, or 'default'
+  const effectiveCategoryId = categories.find(c => c.id === categoryId) 
+    ? categoryId 
+    : (categories[0]?.id || 'default');
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await DebtRepository.create({
+      title,
+      creditor,
+      category_id: effectiveCategoryId,
+      original_amount_cents: originalAmountCents,
+      total_installments: parseInt(installments, 10),
+      installment_amount_cents: installmentAmountCents,
+      first_due_date: firstDate
+    });
+    onBack();
+  };
+
+  return (
+    <div className="space-y-6 pb-24 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="flex items-center gap-3 mb-4">
+        <button type="button" onClick={onBack} className="p-2 bg-white rounded-full shadow-sm text-gray-600">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-lg font-black text-gray-900 uppercase">NOVA DÃVIDA</h2>
+      </div>
+
+      <form onSubmit={handleCreate} className="space-y-5">
+        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">TÃTULO</label>
+            <input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: EmprÃ©stimo Banco" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CREDOR (BANCO/INSTITUIÃ‡ÃƒO)</label>
+            <input required value={creditor} onChange={e => setCreditor(e.target.value)} placeholder="Ex: Nubank" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">CATEGORIA</label>
+            <select required value={effectiveCategoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none">
+              {categories.length === 0 && <option value="default">Geral</option>}
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR ORIGINAL TOTAL</label>
+            <MoneyInput
+              required
+              valueCents={originalAmountCents}
+              onChangeCents={setOriginalAmountCents}
+              className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">NÂº PARCELAS</label>
+              <input required type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">VALOR PARCELA</label>
+              <MoneyInput
+                required
+                valueCents={installmentAmountCents}
+                onChangeCents={setInstallmentAmountCents}
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">1Âº VENCIMENTO</label>
+            <input required type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+
+        <button type="submit" className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-sm active:scale-95 transition-transform">
+          CRIAR DÃVIDA E GERAR PARCELAS
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\data\db.ts
+============================================================
+import Dexie, { type Table, type Transaction } from 'dexie';
+import type { 
+  Account, Category, Payment, RecurringAccount, 
+  Reminder, AppSettings, Wallet, Reserve, 
+  ReserveContribution, PasswordEntry, InvestmentPlan,
+  Income, Debt, DebtInstallment, AppNotification, AppTransaction
+} from '../types';
+
+export class FinanceDatabase extends Dexie {
+  categories!: Table<Category, string>;
+  accounts!: Table<Account, string>; // Now strictly Expenses
+  income!: Table<Income, string>;
+  payments!: Table<Payment, string>;
+  transactions!: Table<AppTransaction, string>;
+  recurring_accounts!: Table<RecurringAccount, string>;
+  reminders!: Table<Reminder, string>;
+  settings!: Table<AppSettings, string>;
+  wallets!: Table<Wallet, string>;
+  reserves!: Table<Reserve, string>;
+  reserve_contributions!: Table<ReserveContribution, string>;
+  passwords!: Table<PasswordEntry, string>;
+  investment_plans!: Table<InvestmentPlan, string>;
+  debts!: Table<Debt, string>;
+  debt_installments!: Table<DebtInstallment, string>;
+  notifications!: Table<AppNotification, string>;
+
+  constructor() {
+    super('FinanceAppDB');
+    
+    this.version(1).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type'
+    });
+
+    this.version(2).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, completed',
+      settings: 'id'
+    });
+
+    this.version(3).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id'
+    });
+
+    this.version(4).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      payments: 'id, account_id, paid_at',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id'
+    });
+
+    // V5: Separation of Income, Addition of Debts, Transactions and Notifications
+    this.version(5).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id',
+      income: 'id, expected_date, category_id, status, recurring_id',
+      payments: 'id, account_id, paid_at',
+      transactions: 'id, wallet_id, reference_id, type, date',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id',
+      debts: 'id, status, due_day',
+      debt_installments: 'id, debt_id, due_date, status',
+      notifications: 'id, type, created_at, read'
+    }).upgrade(async (tx: Transaction) => {
+      console.log('--- STARTING V5 MIGRATION: Separating Income from Accounts ---');
+      
+      const accountsTable = tx.table('accounts');
+      const incomeTable = tx.table('income');
+
+      const allAccounts = await accountsTable.toArray();
+      const totalAccounts = allAccounts.length;
+      
+      // We are looking for anything stored as type 'income'
+      const incomeAccounts = allAccounts.filter((a: any) => a.type === 'income');
+      const expectedIncomeCount = incomeAccounts.length;
+
+      console.log(`Total accounts found: ${totalAccounts}`);
+      console.log(`Total 'income' type to migrate: ${expectedIncomeCount}`);
+
+      let migratedCount = 0;
+
+      for (const acc of incomeAccounts) {
+        // Map account status to income status
+        let newStatus: 'pending' | 'received' | 'cancelled' = 'pending';
+        if (acc.status === 'paid') newStatus = 'received';
+        if (acc.status === 'cancelled') newStatus = 'cancelled';
+
+        await incomeTable.add({
+          id: acc.id,
+          title: acc.title,
+          description: acc.description,
+          amount_cents: acc.amount_cents,
+          expected_date: acc.due_date,
+          received_date: newStatus === 'received' ? acc.updated_at.toISOString().split('T')[0] : undefined,
+          category_id: acc.category_id,
+          status: newStatus,
+          recurring_id: acc.recurring_id,
+          created_at: acc.created_at || new Date(),
+          updated_at: acc.updated_at || new Date()
+        });
+
+        migratedCount++;
+      }
+
+      console.log(`Successfully migrated to Income table: ${migratedCount}`);
+
+      if (expectedIncomeCount !== migratedCount) {
+        console.error(`MIGRATION ABORTED: Expected ${expectedIncomeCount}, but migrated ${migratedCount}.`);
+        throw new Error('Migration failed due to count mismatch. Aborting to preserve data.');
+      }
+
+      console.log('Migration verified. 100% of income records migrated safely.');
+      console.log('NOTE: Legacy income records are preserved in the accounts table for now to ensure no data destruction. The application logic will ignore them.');
+    });
+
+    // V6: Add account_id index to debt_installments for reverse lookup (installment â†’ account)
+    // No data migration needed â€” index is additive only.
+    this.version(6).stores({
+      categories: 'id, name',
+      accounts: 'id, due_date, category_id, status, type, recurring_id, installment_id, debtId, debtInstallmentId',
+      income: 'id, expected_date, category_id, status, recurring_id',
+      payments: 'id, account_id, paid_at',
+      transactions: 'id, wallet_id, reference_id, type, date',
+      recurring_accounts: 'id, active, type',
+      reminders: 'id, date, category, completed',
+      settings: 'id',
+      wallets: 'id',
+      reserves: 'id',
+      reserve_contributions: 'id, reserve_id, contributed_at',
+      passwords: 'id, title',
+      investment_plans: 'id',
+      debts: 'id, status, category_id',
+      debt_installments: 'id, debt_id, due_date, status, account_id',
+      notifications: 'id, type, created_at, read'
+    });
+  }
+}
+
+export const db = new FinanceDatabase();
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\hooks\useAccounts.ts
+============================================================
+import { useLiveQuery } from 'dexie-react-hooks';
+import { AccountRepository } from '../repository/AccountRepository';
+import type { Account } from '../types';
+
+export function useAccounts() {
+  const accounts = useLiveQuery(() => AccountRepository.getAllExpenses(), []);
+
+  const addAccount = async (account: Omit<Account, 'id' | 'created_at' | 'updated_at'>) => {
+    return await AccountRepository.create(account);
+  };
+
+  const togglePaid = async (id: string, isCurrentlyPaid: boolean) => {
+    if (isCurrentlyPaid) {
+      return await AccountRepository.markAsPending(id);
+    } else {
+      return await AccountRepository.markAsPaid(id);
+    }
+  };
+
+  const deleteAccount = async (id: string) => {
+    return await AccountRepository.delete(id);
+  };
+
+  return {
+    accounts: accounts || [],
+    addAccount,
+    togglePaid,
+    deleteAccount
+  };
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\AccountRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Account, AccountStatus } from '../types';
+
+export class AccountRepository {
+  static async create(account: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date();
+    await db.accounts.add({
+      ...account,
+      id,
+      created_at: now,
+      updated_at: now,
+    });
+    return id;
+  }
+
+  static async getById(id: string): Promise<Account | undefined> {
+    return await db.accounts.get(id);
+  }
+
+  static async getAllExpenses(): Promise<Account[]> {
+    // V5: We now strictly ignore any legacy account where type === 'income'
+    const all = await db.accounts.toArray();
+    return all.filter(a => (a.type as string) !== 'income');
+  }
+
+  static async update(id: string, updates: Partial<Omit<Account, 'id'>>): Promise<void> {
+    await db.accounts.update(id, { ...updates, updated_at: new Date() });
+  }
+
+  static async updateStatus(id: string, status: AccountStatus): Promise<void> {
+    await db.accounts.update(id, { status, updated_at: new Date() });
+  }
+
+  // --- EVENT-DRIVEN PAYMENT LOGIC (ATOMIC) ---
+
+  static async markAsPaid(accountId: string): Promise<void> {
+    const account = await db.accounts.get(accountId);
+    if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
+
+    if (account.debtInstallmentId) {
+      const { DebtRepository } = await import('./DebtRepository');
+      return DebtRepository.payInstallment(account.debtInstallmentId, account.amount_cents);
+    }
+
+    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
+      // Re-fetch inside transaction
+      const account = await db.accounts.get(accountId);
+      if (!account || account.status === 'paid' || (account.type as string) === 'income') return;
+
+      const now = new Date();
+
+      // 1. Update account
+      await db.accounts.update(accountId, { status: 'paid', updated_at: now });
+
+      // 2. Record payment history
+      await db.payments.add({
+        id: uuidv4(),
+        account_id: accountId,
+        amount_cents: account.amount_cents,
+        paid_at: now,
+        payment_method: 'other',
+        created_at: now,
+      });
+
+      // 3. Update Wallet Balance (- amount)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, { 
+        balance_cents: wallet.balance_cents - account.amount_cents,
+        updated_at: now
+      });
+
+      // 4. Record Transaction log
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: accountId,
+        type: 'expense_paid',
+        amount_cents: -account.amount_cents, // negative
+        date: now,
+        description: `Pagamento: ${account.title}`,
+        created_at: now
+      });
+    });
+  }
+
+  static async markAsPending(accountId: string): Promise<void> {
+    await db.transaction('rw', db.accounts, db.payments, db.wallets, db.transactions, async () => {
+      const account = await db.accounts.get(accountId);
+      if (!account || account.status === 'pending' || (account.type as string) === 'income') return;
+
+      const now = new Date();
+
+      // 1. Reverse account status
+      await db.accounts.update(accountId, { status: 'pending', updated_at: now });
+
+      // 2. Delete payment history
+      const payments = await db.payments.where('account_id').equals(accountId).toArray();
+      for (const p of payments) {
+        await db.payments.delete(p.id);
+      }
+
+      // 3. Reverse Wallet Balance (+ amount)
+      const wallets = await db.wallets.toArray();
+      const wallet = wallets[0];
+      if (wallet) {
+        await db.wallets.update(wallet.id, { 
+          balance_cents: wallet.balance_cents + account.amount_cents,
+          updated_at: now
+        });
+      }
+
+      // 4. Delete matching transaction history
+      const txs = await db.transactions.where('reference_id').equals(accountId).toArray();
+      for (const t of txs) {
+        await db.transactions.delete(t.id);
+      }
+    });
+  }
+
+  static async delete(id: string): Promise<void> {
+    await db.accounts.delete(id);
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\DebtRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Debt, DebtInstallment, Account } from '../types';
+import { DebtService } from '../services/DebtService';
+
+export class DebtRepository {
+  /**
+   * 1. Creates a Debt.
+   * 2. Generates N DebtInstallments.
+   * 3. Generates N corresponding Accounts to integrate with the rest of the app.
+   */
+  static async create(
+    debt: Omit<Debt, 'id' | 'paid_installments' | 'status' | 'created_at' | 'updated_at'>
+  ): Promise<string> {
+    return await db.transaction('rw', db.debts, db.debt_installments, db.accounts, async () => {
+      const debtId = uuidv4();
+      const now = new Date();
+
+      const newDebt: Debt = {
+        ...debt,
+        id: debtId,
+        status: 'active',
+        paid_installments: 0,
+        created_at: now,
+        updated_at: now,
+      };
+
+      await db.debts.add(newDebt);
+
+      const dueDates = DebtService.generateDueDates(debt.first_due_date, debt.total_installments);
+
+      for (let i = 0; i < debt.total_installments; i++) {
+        const installmentId = uuidv4();
+        const accountId = uuidv4();
+        const dueDate = dueDates[i];
+
+        const installment: DebtInstallment = {
+          id: installmentId,
+          debt_id: debtId,
+          account_id: accountId,
+          installment_number: i + 1,
+          amount_cents: debt.installment_amount_cents,
+          paid_amount_cents: 0,
+          due_date: dueDate,
+          status: 'pending',
+          created_at: now,
+        };
+
+        const account: Account = {
+          id: accountId,
+          title: `${debt.title} - Parcela ${i + 1}/${debt.total_installments}`,
+          amount_cents: debt.installment_amount_cents,
+          due_date: dueDate,
+          category_id: debt.category_id, // Inherit category from Debt
+          status: 'pending',
+          type: 'expense',
+          debtId: debtId,
+          debtInstallmentId: installmentId,
+          installment_current: i + 1,
+          installment_total: debt.total_installments,
+          created_at: now,
+          updated_at: now,
+        };
+
+        await db.debt_installments.add(installment);
+        await db.accounts.add(account);
+      }
+
+      return debtId;
+    });
+  }
+
+  static async getAll(): Promise<Debt[]> {
+    return await db.debts.toArray();
+  }
+
+  static async getById(id: string): Promise<Debt | undefined> {
+    return await db.debts.get(id);
+  }
+
+  static async getInstallments(debtId: string): Promise<DebtInstallment[]> {
+    const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+    return installments.sort((a, b) => a.installment_number - b.installment_number);
+  }
+
+  /**
+   * Pays a specific amount of an installment (partial or full).
+   * - Only debits the exact `amountCents` paid from the wallet.
+   * - Prevents duplicate payment.
+   * - Never debits more than the remaining amount.
+   */
+  static async payInstallment(installmentId: string, amountCents: number): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, db.wallets, db.transactions, async () => {
+      const inst = await db.debt_installments.get(installmentId);
+      if (!inst) throw new Error('Installment not found');
+
+      const remaining = DebtService.remainingCents(inst);
+      if (remaining <= 0 || inst.status === 'paid') return; // Already paid
+
+      // Cap payment at remaining amount to avoid overpayment
+      const actualPayment = Math.min(amountCents, remaining);
+      const newPaidAmount = inst.paid_amount_cents + actualPayment;
+      const isFullyPaid = newPaidAmount >= inst.amount_cents;
+      const newStatus = isFullyPaid ? 'paid' : 'partial';
+      const now = new Date();
+
+      // 1. Update Installment
+      await db.debt_installments.update(inst.id, {
+        paid_amount_cents: newPaidAmount,
+        status: newStatus,
+        paid_at: isFullyPaid ? now : undefined,
+      });
+
+      // 2. Update Account
+      await db.accounts.update(inst.account_id, {
+        status: newStatus === 'paid' ? 'paid' : 'pending',
+        updated_at: now,
+      });
+
+      // 3. Update Debt counters if fully paid
+      if (isFullyPaid) {
+        const debt = await db.debts.get(inst.debt_id);
+        if (debt) {
+          await db.debts.update(debt.id, {
+            paid_installments: debt.paid_installments + 1,
+            updated_at: now,
+          });
+        }
+      }
+
+      // 4. Update Wallet (Debit only the actualPayment)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, {
+        balance_cents: wallet.balance_cents - actualPayment,
+        updated_at: now,
+      });
+
+      // 5. Create a SINGLE transaction for this payment
+      const debt = await db.debts.get(inst.debt_id);
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: inst.id, // Reference is the installment
+        type: 'debt_paid',
+        amount_cents: -actualPayment, // Negative
+        date: now,
+        description: isFullyPaid
+          ? `Pagamento de parcela: ${debt?.title || 'DÃ­vida'} (${inst.installment_number}/${debt?.total_installments})`
+          : `Pagamento parcial: ${debt?.title || 'DÃ­vida'} (${inst.installment_number}/${debt?.total_installments})`,
+        created_at: now,
+      });
+    });
+  }
+
+  /**
+   * Settles the entire debt (early payoff or renegotiation).
+   * - Records ONE single transaction.
+   * - Debits Wallet ONCE.
+   * - Marks all pending/partial installments as 'paid'.
+   */
+  static async settleDebt(debtId: string, settlementAmountCents: number): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, db.wallets, db.transactions, async () => {
+      const debt = await db.debts.get(debtId);
+      if (!debt || debt.status === 'paid_off') return;
+
+      const now = new Date();
+      const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+      
+      // 1. Update all non-paid installments and their accounts
+      for (const inst of installments) {
+        if (inst.status !== 'paid') {
+          await db.debt_installments.update(inst.id, {
+            status: 'paid',
+            paid_amount_cents: inst.amount_cents, // Mark as fully paid for consistency
+            paid_at: now,
+          });
+
+          await db.accounts.update(inst.account_id, {
+            status: 'paid',
+            updated_at: now,
+          });
+        }
+      }
+
+      // 2. Update Debt
+      await db.debts.update(debtId, {
+        status: 'paid_off',
+        settlement_amount_cents: settlementAmountCents,
+        settled_at: now,
+        paid_installments: debt.total_installments,
+        updated_at: now,
+      });
+
+      // 3. Update Wallet (Debit settlement amount ONCE)
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      await db.wallets.update(wallet.id, {
+        balance_cents: wallet.balance_cents - settlementAmountCents,
+        updated_at: now,
+      });
+
+      // 4. Record a SINGLE transaction for the settlement
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: debtId, // Reference is the Debt itself
+        type: 'debt_settlement',
+        amount_cents: -settlementAmountCents, // Negative
+        date: now,
+        description: `QuitaÃ§Ã£o antecipada â€” ${debt.title}`,
+        created_at: now,
+      });
+    });
+  }
+
+  static async cancelDebt(debtId: string): Promise<void> {
+    await db.transaction('rw', db.debts, db.debt_installments, db.accounts, async () => {
+      await db.debts.update(debtId, { status: 'cancelled', updated_at: new Date() });
+      
+      const installments = await db.debt_installments.where('debt_id').equals(debtId).toArray();
+      for (const inst of installments) {
+        if (inst.status !== 'paid') {
+          await db.accounts.update(inst.account_id, { status: 'cancelled', updated_at: new Date() });
+        }
+      }
+    });
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\IncomeRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Income, IncomeStatus } from '../types';
+
+export class IncomeRepository {
+  static async create(income: Omit<Income, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date();
+    await db.income.add({
+      ...income,
+      id,
+      created_at: now,
+      updated_at: now,
+    });
+    return id;
+  }
+
+  static async getById(id: string): Promise<Income | undefined> {
+    return await db.income.get(id);
+  }
+
+  static async getAll(): Promise<Income[]> {
+    return await db.income.toArray();
+  }
+
+  static async update(id: string, updates: Partial<Omit<Income, 'id'>>): Promise<void> {
+    await db.income.update(id, { ...updates, updated_at: new Date() });
+  }
+
+  static async updateStatus(id: string, status: IncomeStatus): Promise<void> {
+    await db.income.update(id, { status, updated_at: new Date() });
+  }
+
+  // --- EVENT-DRIVEN RECEIVED LOGIC (ATOMIC) ---
+
+  static async markAsReceived(incomeId: string, receivedDate: string = new Date().toISOString().split('T')[0]): Promise<void> {
+    await db.transaction('rw', db.income, db.transactions, db.wallets, async () => {
+      const income = await db.income.get(incomeId);
+      if (!income || income.status === 'received') return;
+
+      const now = new Date();
+
+      // 1. Update income status
+      await db.income.update(incomeId, { 
+        status: 'received', 
+        received_date: receivedDate,
+        updated_at: now 
+      });
+
+      // 2. Get/Initialize Wallet
+      const wallets = await db.wallets.toArray();
+      let wallet = wallets[0];
+      if (!wallet) {
+        wallet = { id: 'default', name: 'Minha Conta', balance_cents: 390000, created_at: now, updated_at: now };
+        await db.wallets.add(wallet);
+      }
+
+      // 3. Update Wallet Balance (+ amount)
+      await db.wallets.update(wallet.id, { 
+        balance_cents: wallet.balance_cents + income.amount_cents,
+        updated_at: now
+      });
+
+      // 4. Record Transaction log
+      await db.transactions.add({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        reference_id: incomeId,
+        type: 'income_received',
+        amount_cents: income.amount_cents, // positive
+        date: now,
+        description: `Recebimento: ${income.title}`,
+        created_at: now
+      });
+    });
+  }
+
+  static async markAsPending(incomeId: string): Promise<void> {
+    await db.transaction('rw', db.income, db.transactions, db.wallets, async () => {
+      const income = await db.income.get(incomeId);
+      if (!income || income.status === 'pending') return;
+
+      const now = new Date();
+
+      // 1. Reverse income status
+      await db.income.update(incomeId, { 
+        status: 'pending', 
+        received_date: undefined,
+        updated_at: now 
+      });
+
+      // 2. Reverse Wallet Balance (- amount)
+      const wallets = await db.wallets.toArray();
+      const wallet = wallets[0];
+      if (wallet) {
+        await db.wallets.update(wallet.id, { 
+          balance_cents: wallet.balance_cents - income.amount_cents,
+          updated_at: now
+        });
+      }
+
+      // 3. Delete matching transaction history
+      const txs = await db.transactions.where('reference_id').equals(incomeId).toArray();
+      for (const t of txs) {
+        await db.transactions.delete(t.id);
+      }
+    });
+  }
+
+  static async delete(id: string): Promise<void> {
+    await db.income.delete(id);
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\PaymentRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { Payment } from '../types';
+
+export class PaymentRepository {
+  static async create(payment: Omit<Payment, 'id' | 'created_at'>): Promise<string> {
+    const id = uuidv4();
+    await db.payments.add({
+      ...payment,
+      id,
+      created_at: new Date(),
+    });
+    return id;
+  }
+
+  static async getByAccountId(accountId: string): Promise<Payment[]> {
+    return await db.payments.where('account_id').equals(accountId).toArray();
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\repository\RecurringAccountRepository.ts
+============================================================
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../data/db';
+import type { RecurringAccount } from '../types';
+
+export class RecurringAccountRepository {
+  static async create(recurring: Omit<RecurringAccount, 'id' | 'created_at' | 'updated_at'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date();
+    await db.recurring_accounts.add({
+      ...recurring,
+      id,
+      created_at: now,
+      updated_at: now,
+    });
+    return id;
+  }
+
+  static async getAllActive(): Promise<RecurringAccount[]> {
+    // Note: IndexedDB booleans need special handling sometimes, but dexie handles it well. 
+    // If querying boolean, we filter in memory or index as number (0/1) for better performance later.
+    const all = await db.recurring_accounts.toArray();
+    return all.filter(r => r.active);
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\AccountService.ts
+============================================================
+import type { Account, AccountPriority } from '../types';
+import { isOverdue } from '../utils/date';
+import { differenceInDays, startOfDay, parseISO } from 'date-fns';
+
+export class AccountService {
+  static calculatePriority(account: Account): AccountPriority {
+    if (account.status === 'paid' || account.status === 'cancelled') {
+      return 'normal';
+    }
+
+    if (isOverdue(account.due_date)) {
+      return 'urgent';
+    }
+
+    const today = startOfDay(new Date());
+    const dueDate = startOfDay(parseISO(account.due_date));
+    const diff = differenceInDays(dueDate, today);
+
+    if (diff === 0) return 'urgent'; // due today
+    if (diff >= 1 && diff <= 3) return 'next';
+    if (diff >= 4 && diff <= 7) return 'attention';
+    return 'normal';
+  }
+
+  static isAccountOverdue(account: Account): boolean {
+    if (account.status === 'paid' || account.status === 'cancelled') {
+      return false;
+    }
+    return isOverdue(account.due_date);
+  }
+}
+
+
+
+============================================================
+ARQUIVO: C:\finance\src\services\DebtService.ts
+============================================================
+import type { DebtInstallment } from '../types';
+import { getTodayISO } from '../utils/date';
+
+/**
+ * Computed installment status at runtime.
+ * 'overdue' is derived from due_date vs today, NOT stored in the DB,
+ * so the app remains correct even after several days without being opened.
+ */
+export type ComputedInstallmentStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+
+export class DebtService {
+  /**
+   * Determines the real status of an installment at the moment of evaluation.
+   *
+   * Rules:
+   * - paid: paid_amount_cents >= amount_cents
+   * - partial: 0 < paid_amount_cents < amount_cents (regardless of due_date)
+   * - overdue: not paid/partial AND due_date < today
+   * - pending: not paid/partial AND due_date >= today
+   */
+  static getInstallmentStatus(
+    installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents' | 'due_date' | 'status'>,
+    today: string = getTodayISO()
+  ): ComputedInstallmentStatus {
+    if (installment.paid_amount_cents >= installment.amount_cents) return 'paid';
+    if (installment.paid_amount_cents > 0) return 'partial';
+    if (installment.due_date < today) return 'overdue';
+    return 'pending';
+  }
+
+  static isOverdue(
+    installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents' | 'due_date'>,
+    today: string = getTodayISO()
+  ): boolean {
+    return (
+      installment.paid_amount_cents < installment.amount_cents &&
+      installment.due_date < today
+    );
+  }
+
+  static remainingCents(installment: Pick<DebtInstallment, 'amount_cents' | 'paid_amount_cents'>): number {
+    return Math.max(0, installment.amount_cents - installment.paid_amount_cents);
+  }
+
+  /**
+   * Calculates the total remaining amount for a debt from its installments.
+   * This is the source of truth â€” not debt.current_amount_cents.
+   */
+  static calculateDebtRemaining(installments: DebtInstallment[]): number {
+    return installments.reduce((sum, inst) => sum + DebtService.remainingCents(inst), 0);
+  }
+
+  /**
+   * Counts paid installments from the installments array.
+   * Use this to verify / recalculate debt.paid_installments.
+   */
+  static countPaidInstallments(installments: DebtInstallment[]): number {
+    return installments.filter(i => i.paid_amount_cents >= i.amount_cents).length;
+  }
+
+  /**
+   * Generates the due dates for each installment starting from first_due_date,
+   * incrementing by 1 month per installment.
+   */
+  static generateDueDates(firstDueDate: string, count: number): string[] {
+    const dates: string[] = [];
+    const [year, month, day] = firstDueDate.split('-').map(Number);
+    for (let i = 0; i < count; i++) {
+      const d = new Date(year, month - 1 + i, day);
+      // Handle month overflow (e.g. Jan 31 + 1 month â†’ Feb 28)
+      if (d.getDate() !== day) {
+        d.setDate(0); // last day of previous month
+      }
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    return dates;
+  }
+}
+

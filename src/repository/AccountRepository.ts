@@ -224,25 +224,35 @@ export class AccountRepository {
               wallet.balance_cents + current.amount_cents,
             updated_at: now,
           });
-        }
 
-        const transactions = await db.transactions
-          .where('reference_id')
-          .equals(accountId)
-          .toArray();
-
-        for (const transaction of transactions) {
-          if (transaction.type === 'expense_paid') {
-            await db.transactions.delete(transaction.id);
-          }
+          await db.transactions.add({
+            id: uuidv4(),
+            wallet_id: wallet.id,
+            reference_id: accountId,
+            type: 'expense_refund',
+            amount_cents: current.amount_cents,
+            date: now,
+            description: `Estorno: ${current.title}`,
+            created_at: now,
+          });
         }
       }
     );
   }
 
   static async delete(id: string): Promise<void> {
+    const account = await db.accounts.get(id);
+    if (!account) return;
+
+    if (account.status === 'paid' && !account.debtInstallmentId) {
+      await AccountRepository.markAsPending(id);
+    }
+    
+    // Se for parcela de dívida, a exclusão física quebra o histórico, 
+    // mas o DebtRepository deveria ser responsável. Aqui mantemos a deleção física
+    // para a account, mas garantimos que estornos foram feitos acima.
+
     await db.accounts.delete(id);
-    // Cancel any scheduled native notification for this account
     await NativeNotificationService.cancelExpenseReminder(id);
   }
 }

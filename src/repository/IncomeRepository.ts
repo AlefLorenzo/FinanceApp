@@ -163,25 +163,31 @@ export class IncomeRepository {
               wallet.balance_cents - income.amount_cents,
             updated_at: now,
           });
-        }
 
-        const transactions = await db.transactions
-          .where('reference_id')
-          .equals(incomeId)
-          .toArray();
-
-        for (const transaction of transactions) {
-          if (transaction.type === 'income_received') {
-            await db.transactions.delete(transaction.id);
-          }
+          await db.transactions.add({
+            id: uuidv4(),
+            wallet_id: wallet.id,
+            reference_id: incomeId,
+            type: 'income_refund',
+            amount_cents: -income.amount_cents,
+            date: now,
+            description: `Estorno de recebimento: ${income.title}`,
+            created_at: now,
+          });
         }
       }
     );
   }
 
   static async delete(id: string): Promise<void> {
+    const income = await db.income.get(id);
+    if (!income) return;
+
+    if (income.status === 'received') {
+      await IncomeRepository.markAsPending(id);
+    }
+
     await db.income.delete(id);
-    // Cancel any scheduled native notification for this income
     await NativeNotificationService.cancelIncomeReminder(id);
   }
 }

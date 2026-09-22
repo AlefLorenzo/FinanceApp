@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Home,
   ClipboardList,
@@ -20,7 +20,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
 import { MoneyInput } from './ui/MoneyInput';
 import { formatBRLFromCents, parseBRLToCents } from '../utils/currency';
-import { WalletService } from '../services/WalletService';
 
 type SidebarProps = {
   activeView: string;
@@ -77,8 +76,21 @@ export function Sidebar({
     const cents = parseBRLToCents(newBalance);
     const now = new Date();
 
-    await WalletService.adjustBalance(cents);
-    
+    if (wallets.length > 0) {
+      await db.wallets.update(wallets[0].id, {
+        balance_cents: cents,
+        updated_at: now
+      });
+    } else {
+      await db.wallets.add({
+        id: 'default',
+        name: 'Minha Conta',
+        balance_cents: cents,
+        created_at: now,
+        updated_at: now
+      });
+    }
+
     setIsEditingBalance(false);
     setNewBalance('');
   };
