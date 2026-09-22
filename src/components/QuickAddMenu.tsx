@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   ClipboardList, TrendingUp, CreditCard, LifeBuoy, BarChart3, Calendar, CheckSquare, Target, X
 } from 'lucide-react';
@@ -9,7 +10,17 @@ type QuickAddMenuProps = {
 };
 
 export function QuickAddMenu({ isOpen, onClose, onSelectAction }: QuickAddMenuProps) {
-  if (!isOpen) return null;
+  const [closing, setClosing] = useState(false);
+
+  if (!isOpen && !closing) return null;
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(() => {
+      setClosing(false);
+      onClose();
+    }, 200);
+  };
 
   const actions = [
     { id: 'expense', label: 'Conta', icon: ClipboardList, color: 'bg-red-50 text-red-500' },
@@ -24,16 +35,30 @@ export function QuickAddMenu({ isOpen, onClose, onSelectAction }: QuickAddMenuPr
 
   const handleSelect = (id: string) => {
     onSelectAction(id);
-    onClose();
+    handleClose();
   };
+
+  // Suporte a ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center select-none">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity ${closing ? 'opacity-0' : 'opacity-100'}`} onClick={handleClose} />
 
       {/* Bottom Sheet Drawer */}
-      <div className="relative w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-10 shadow-2xl z-10 animate-in slide-in-from-bottom duration-300">
+      <div 
+        className={`relative w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-10 shadow-2xl z-10 ${closing ? 'animate-out slide-out-to-bottom duration-200' : 'animate-in slide-in-from-bottom duration-200'}`}
+        role="dialog"
+        aria-modal="true"
+      >
         {/* Drag indicator */}
         <div className="flex justify-center mb-4">
           <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
@@ -42,7 +67,7 @@ export function QuickAddMenu({ isOpen, onClose, onSelectAction }: QuickAddMenuPr
         {/* Title */}
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-black text-gray-900">O que deseja adicionar?</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-full transition">
+          <button onClick={handleClose} className="p-2 hover:bg-gray-50 rounded-full transition" aria-label="Fechar">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>

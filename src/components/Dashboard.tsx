@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useToast } from './ui/ToastContext';
+import { useState } from 'react';
 
 export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const summary = useFinancialSummary();
@@ -19,17 +21,28 @@ export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void 
   const settings = useLiveQuery(() => db.settings.toArray(), [])?.[0];
   const score = FinancialEngine.calculateScore(summary);
   const isHidden = settings?.hide_values ?? false;
+  const { showToast } = useToast();
+  const [loadingAction, setLoadingAction] = useState(false);
 
   const fmt = (cents: number) =>
     isHidden ? '••••••' : `${formatBRLFromCents(cents)}`;
 
   const handleNextActionClick = async () => {
     const action = summary.nextAction;
-    if (!action?.entityId) return;
-    if (action.type === 'receive') {
-      await IncomeRepository.markAsReceived(action.entityId);
-    } else if (action.type === 'pay') {
-      await AccountRepository.markAsPaid(action.entityId);
+    if (!action?.entityId || loadingAction) return;
+    setLoadingAction(true);
+    try {
+      if (action.type === 'receive') {
+        await IncomeRepository.markAsReceived(action.entityId);
+        showToast('Receita registrada com sucesso.', 'success');
+      } else if (action.type === 'pay') {
+        await AccountRepository.markAsPaid(action.entityId);
+        showToast(`Pagamento registrado. ${formatBRLFromCents(action.amountCents || 0)} debitados.`, 'success');
+      }
+    } catch {
+      showToast('Erro ao processar a ação.', 'error');
+    } finally {
+      setLoadingAction(false);
     }
   };
 
@@ -143,9 +156,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void 
               {summary.nextAction?.entityId && (
                 <button
                   onClick={handleNextActionClick}
-                  className="bg-white text-gray-900 font-black py-3 px-6 rounded-xl text-sm hover:bg-gray-100 active:scale-[.97] transition w-full md:w-auto text-center"
+                  disabled={loadingAction}
+                  className="bg-white text-gray-900 font-black py-3 px-6 rounded-xl text-sm hover:bg-gray-100 active:scale-[.97] transition w-full md:w-auto text-center disabled:opacity-80 flex items-center justify-center gap-2"
                 >
-                  {getActionLabel()}
+                  {loadingAction ? 'Processando...' : getActionLabel()}
                 </button>
               )}
               {!summary.nextAction && (
@@ -207,11 +221,18 @@ export function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void 
           </div>
 
           {/* Organization Score */}
-          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Organização</span>
-            <div className="flex items-baseline gap-1">
-              <span className={`text-2xl font-black ${score > 70 ? 'text-green-500' : score > 40 ? 'text-yellow-500' : 'text-red-500'}`}>{score}</span>
-              <span className="text-xs font-bold text-gray-300">/100</span>
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Organização</span>
+              <span className={`text-xs font-bold ${score > 70 ? 'text-green-600' : score > 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {score > 70 ? 'Excelente' : score > 40 ? 'Atenção' : 'Crítico'}
+              </span>
+            </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-1000 ${score > 70 ? 'bg-green-500' : score > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                style={{ width: `${score}%` }}
+              />
             </div>
           </div>
         </div>

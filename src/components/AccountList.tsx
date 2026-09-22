@@ -30,6 +30,37 @@ export function AccountList({
 
   const [page, setPage] = useState(0);
   const pageSize = limit || 10;
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  const handleSoftDelete = (id: string, title: string) => {
+    setDeletedIds(prev => new Set(prev).add(id));
+    
+    const timeoutId = setTimeout(async () => {
+      setDeletedIds(current => {
+        if (current.has(id)) {
+          deleteAccount(id).catch(() => {
+            showToast('Erro ao excluir a despesa definitivamente.', 'error');
+          });
+          const next = new Set(current);
+          next.delete(id);
+          return next;
+        }
+        return current;
+      });
+    }, 6000);
+
+    showToast(`Despesa "${title}" excluída.`, 'info', {
+      label: 'Desfazer',
+      onClick: () => {
+        clearTimeout(timeoutId);
+        setDeletedIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    });
+  };
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -53,7 +84,7 @@ export function AccountList({
     }
 
     let expenses = (accounts as Account[])
-      .filter(account => account.type === 'expense');
+      .filter(account => account.type === 'expense' && account.id && !deletedIds.has(account.id));
 
     if (hidePaid) {
       expenses = expenses.filter(account => account.status !== 'paid');
@@ -92,8 +123,13 @@ export function AccountList({
         (currentPage + 1) * pageSize
       );
 
-  const handleIncomePending = async (id: string) => {
-    await IncomeRepository.markAsPending(id);
+  const handleIncomePending = async (id: string, title: string) => {
+    try {
+      await IncomeRepository.markAsPending(id);
+      showToast(`Recebimento de "${title}" desfeito.`, 'info');
+    } catch {
+      showToast('Erro ao desfazer recebimento.', 'error');
+    }
   };
 
   const [loadingExpenseIds, setLoadingExpenseIds] = useState<Set<string>>(new Set());
@@ -105,9 +141,9 @@ export function AccountList({
     try {
       await togglePaid(account.id, wasPaid);
       if (!wasPaid) {
-        showToast('Conta paga com sucesso!', 'success');
+        showToast(`Pagamento registrado. ${formatBRLFromCents(account.amount_cents)} saíram do seu saldo.`, 'success');
       } else {
-        showToast('Pagamento desfeito.', 'info');
+        showToast(`Pagamento desfeito.`, 'info');
       }
     } catch {
       showToast('Erro ao atualizar a conta. Tente novamente.', 'error');
@@ -122,15 +158,17 @@ export function AccountList({
 
   if (filteredItems.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center">
-        <div className="text-3xl mb-2">
-          {type === 'income' ? '💰' : '📋'}
+      <div className="rounded-[2rem] border border-gray-100 bg-white p-8 md:p-12 text-center shadow-sm">
+        <div className="text-4xl md:text-5xl mb-4">
+          {type === 'income' ? '🌿' : '🍃'}
         </div>
-
-        <p className="text-sm font-medium text-gray-500">
+        <h3 className="text-lg font-black text-gray-800 mb-2">
+          {type === 'income' ? 'Nenhuma receita por enquanto' : 'Tudo tranquilo por aqui'}
+        </h3>
+        <p className="text-sm font-medium text-gray-500 max-w-sm mx-auto leading-relaxed">
           {type === 'income'
-            ? 'Nenhuma receita recebida.'
-            : 'Nenhuma despesa cadastrada.'}
+            ? 'Você ainda não registrou nenhum recebimento.'
+            : 'Você ainda não registrou nenhuma despesa. Quando a próxima chegar, você pode adicioná-la por aqui.'}
         </p>
       </div>
     );
@@ -172,10 +210,17 @@ export function AccountList({
               disabled={!isIncome && item.id != null && loadingExpenseIds.has(item.id)}
               onClick={() =>
                 isIncome
-                  ? handleIncomePending(item.id)
+                  ? item.id && handleIncomePending(item.id, item.title)
                   : handleExpenseToggle(item.original as Account)
               }
               className="shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={
+                isIncome
+                  ? `Desfazer recebimento de ${item.title}`
+                  : isPaid
+                    ? `Desfazer pagamento de ${item.title}`
+                    : `Marcar ${item.title} como pago`
+              }
               title={
                 isIncome
                   ? 'Marcar como não recebida'
@@ -267,7 +312,7 @@ export function AccountList({
               {isIncome && (
                 <button
                   type="button"
-                  onClick={() => handleIncomePending(item.id)}
+                  onClick={() => item.id && handleIncomePending(item.id, item.title)}
                   className="mt-1 text-[10px] font-bold text-gray-400 hover:text-gray-600"
                 >
                   Desfazer recebimento
@@ -278,11 +323,12 @@ export function AccountList({
             {!isIncome && (
               <button
                 type="button"
-                onClick={() => deleteAccount(item.id)}
-                className="shrink-0 rounded-lg p-2 text-gray-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                onClick={() => item.id && handleSoftDelete(item.id, item.title)}
+                className="shrink-0 rounded-lg p-2.5 md:p-2 text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-red-50 hover:text-red-500"
+                aria-label={`Excluir despesa ${item.title}`}
                 title="Excluir"
               >
-                <Trash2 size={16} />
+                <Trash2 size={18} className="md:w-4 md:h-4" />
               </button>
             )}
           </div>

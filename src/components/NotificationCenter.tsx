@@ -1,7 +1,7 @@
 import { formatBRLFromCents } from '../utils/currency';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, BellOff, CheckCheck } from 'lucide-react';
 import { AccountRepository } from '../repository/AccountRepository';
 import { IncomeRepository } from '../repository/IncomeRepository';
@@ -24,6 +24,15 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
 
   const [loadingBillIds, setLoadingBillIds] = useState<Set<string>>(new Set());
   const [loadingIncomeIds, setLoadingIncomeIds] = useState<Set<string>>(new Set());
+
+  // Suporte a ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   // Build notifications list
   const notifications: NotifEntry[] = [];
@@ -94,6 +103,9 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
       <div
         className="bg-white w-full max-w-sm h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Notificações"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useToast } from './ui/ToastContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../data/db';
@@ -201,6 +201,16 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
     setSettleModal(false);
   };
 
+  // Settle modal ESC support
+  React.useEffect(() => {
+    if (!settleModal) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSettleModal(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [settleModal]);
+
   return (
     <div className="space-y-6 pb-24 animate-in slide-in-from-right-4 duration-300">
       <div className="flex items-center gap-3 mb-2">
@@ -340,7 +350,9 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+        </div>
       )}
+
       {/* Pay Modal */}
       {payModal.isOpen && payModal.inst && (
         <PayInstallmentModal 
@@ -351,8 +363,17 @@ function DebtDetail({ debt, installments, onBack }: { debt: Debt, installments: 
 
       {/* Settle Modal */}
       {settleModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+        <div 
+          className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4"
+          onClick={() => setSettleModal(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8"
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Quitar Dívida"
+          >
             <h3 className="text-lg font-black text-center mb-6">QUITAR DIVIDA</h3>
             
             <div className="space-y-4 mb-6">
@@ -425,9 +446,26 @@ function PayInstallmentModal({ inst, onClose }: { inst: DebtInstallment, onClose
     }
   };
 
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8">
+    <div 
+      className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-8"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pagar Parcela"
+      >
         <h3 className="text-lg font-black text-center mb-6">PAGAR PARCELA</h3>
         
         <div className="space-y-4 mb-6">

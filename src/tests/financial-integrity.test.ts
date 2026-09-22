@@ -32,6 +32,7 @@ describe('Financial Integrity (FASE 1)', () => {
       expect(res2.isConsistent).toBe(true);
       
       const txs = await db.transactions.toArray();
+      txs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       expect(txs).toHaveLength(2);
       expect(txs[0].amount_cents).toBe(15000);
       expect(txs[1].amount_cents).toBe(-10000); // 5000 - 15000

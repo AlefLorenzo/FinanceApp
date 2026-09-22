@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAccounts } from '../hooks/useAccounts';
 import { IncomeRepository } from '../repository/IncomeRepository';
 import { getTodayISO } from '../utils/date';
 import { PlusCircle, X } from 'lucide-react';
 import { MoneyInput } from './ui/MoneyInput';
+import { useToast } from './ui/ToastContext';
 
 type AccountType = 'expense' | 'income';
 
@@ -13,8 +14,10 @@ interface AccountFormProps {
 
 export function AccountForm({ type = 'expense' }: AccountFormProps) {
   const { addAccount } = useAccounts();
+  const { showToast } = useToast();
 
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [title, setTitle] = useState('');
   const [amountCents, setAmountCents] = useState(0);
   const [dueDate, setDueDate] = useState(getTodayISO());
@@ -26,32 +29,52 @@ export function AccountForm({ type = 'expense' }: AccountFormProps) {
   };
 
   const closeForm = () => {
-    setOpen(false);
-    resetForm();
+    setClosing(true);
+    setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+      resetForm();
+    }, 200); // 200ms para a animação fade-out/slide-down
   };
+
+  // Suporte a ESC
+  React.useEffect(() => {
+    if (!open) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeForm();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || amountCents <= 0) return;
 
-    if (type === 'income') {
-      await IncomeRepository.create({
-        title: title.trim(),
-        amount_cents: amountCents,
-        expected_date: dueDate,
-        status: 'pending',
-        category_id: 'default',
-      });
-    } else {
-      await addAccount({
-        title: title.trim(),
-        amount_cents: amountCents,
-        due_date: dueDate,
-        type: 'expense',
-        status: 'pending',
-        category_id: 'default',
-      });
+    try {
+      if (type === 'income') {
+        await IncomeRepository.create({
+          title: title.trim(),
+          amount_cents: amountCents,
+          expected_date: dueDate,
+          status: 'pending',
+          category_id: 'default',
+        });
+        showToast(`Receita adicionada · ${title.trim()}`, 'success');
+      } else {
+        await addAccount({
+          title: title.trim(),
+          amount_cents: amountCents,
+          due_date: dueDate,
+          type: 'expense',
+          status: 'pending',
+          category_id: 'default',
+        });
+        showToast(`Despesa adicionada · ${title.trim()}`, 'success');
+      }
+    } catch {
+      showToast('Erro ao salvar. Tente novamente.', 'error');
     }
 
     closeForm();
@@ -79,15 +102,17 @@ export function AccountForm({ type = 'expense' }: AccountFormProps) {
 
       {open && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm overflow-y-auto"
+          className={`fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm overflow-y-auto ${closing ? 'animate-out fade-out' : 'animate-in fade-in'}`}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
           <div className="min-h-full w-full flex items-center justify-center p-4">
             <div
-              className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden"
+              className={`relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden ${closing ? 'animate-out slide-out-to-bottom-8 duration-200' : 'animate-in slide-in-from-bottom-8 duration-200'}`}
               onMouseDown={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
             >
 
               <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-gray-100">
